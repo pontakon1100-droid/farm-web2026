@@ -2607,9 +2607,34 @@
   }
 
   function onSaleProductSelect() {
-    const raw = document.getElementById('sale-product-select').value;
-    const name = raw.startsWith('__inv__') ? raw.split('__')[3] : raw;
+    const raw   = document.getElementById('sale-product-select').value;
+    const name  = raw.startsWith('__inv__') ? raw.split('__')[3] : raw;
     document.getElementById('sale-product-input').value = name;
+
+    // ── auto-fill วันที่จากวันเข้าคลังของผลผลิตที่เลือก ──
+    if (raw.startsWith('__inv__')) {
+      const invId = _getInvIdFromSelectVal(raw);
+      const item  = invId ? invItems.find(i => i.id === invId) : null;
+      if (item && item.harvestDate) {
+        document.getElementById('sale-date-input').value = item.harvestDate;
+        // แสดง hint ให้รู้ว่ามาจากวันเข้าคลัง
+        _showSaleDateHint('📅 วันเข้าคลัง: ' + new Date(item.harvestDate).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}));
+      }
+    } else {
+      _showSaleDateHint('');
+    }
+  }
+
+  function _showSaleDateHint(text) {
+    let hint = document.getElementById('sale-date-hint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.id = 'sale-date-hint';
+      hint.style.cssText = 'font-size:11px;color:var(--green-600);margin-top:3px;';
+      const dateGroup = document.getElementById('sale-date-input').parentNode;
+      dateGroup.appendChild(hint);
+    }
+    hint.textContent = text;
   }
 
   function _getInvIdFromSelectVal(val) {
@@ -2659,6 +2684,7 @@
     document.getElementById('sale-total').style.background = 'var(--gray-50)';
     document.getElementById('sale-total-auto').checked = true;
     document.getElementById('sale-payment-input').value = 'เงินสด';
+    _showSaleDateHint('');
     document.getElementById('modal-sale').classList.add('open');
   }
 
@@ -2708,9 +2734,26 @@
 
   // ===== SALE EDIT HELPERS =====
   function onSeProductSelect() {
-    const raw = document.getElementById('se-product-select').value;
+    const raw  = document.getElementById('se-product-select').value;
     const name = raw.startsWith('__inv__') ? raw.split('__')[3] : raw;
     document.getElementById('se-product').value = name;
+
+    // ── auto-fill วันที่จากวันเข้าคลัง ──
+    if (raw.startsWith('__inv__')) {
+      const invId = _getInvIdFromSelectVal(raw);
+      const item  = invId ? invItems.find(i => i.id === invId) : null;
+      if (item && item.harvestDate) {
+        document.getElementById('se-date').value = item.harvestDate;
+        let hint = document.getElementById('se-date-hint');
+        if (!hint) {
+          hint = document.createElement('div');
+          hint.id = 'se-date-hint';
+          hint.style.cssText = 'font-size:11px;color:var(--green-600);margin-top:3px;';
+          document.getElementById('se-date').parentNode.appendChild(hint);
+        }
+        hint.textContent = '📅 วันเข้าคลัง: ' + new Date(item.harvestDate).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
+      }
+    }
   }
 
   function toggleSeProductInput() {
