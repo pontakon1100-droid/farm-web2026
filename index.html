@@ -4947,9 +4947,9 @@
     },
     supply: {
       title: 'คลังวัสดุ',
-      headers: ['รายการ','หมวดหมู่','คงเหลือ','หน่วย','ราคาต่อหน่วย (฿)','สั่งซื้อล่าสุด','สถานะ'],
+      headers: ['รายการ','หมวดหมู่','คงเหลือ','หน่วย','ราคาต่อหน่วย (฿)','ราคารวม (฿)','สั่งซื้อล่าสุด','สถานะ'],
       rows: () => invItems.filter(i=>i.cat!=='ผลผลิต')
-        .map(i => { const st=invStatus(i); return [i.name, i.cat, i.qty, i.unit, i.price, i.lastOrder, st.label]; })
+        .map(i => { const st=invStatus(i); return [i.name, i.cat, i.qty, i.unit, i.price, i.qty*(i.price||0), i.lastOrder, st.label]; })
     },
     calendar: {
       title: 'ปฏิทินกิจกรรม',
@@ -5057,6 +5057,10 @@
       const totalKg  = rows.reduce((s,r)=>s+(Number(r[4])||0),0);
       sheetData.push(['', '', '', 'น้ำหนักรวม (กก.)', totalKg, '', '', '']);
       sheetData.push(['', '', '', 'ยอดรวม (฿)', totalAmt, '', '', '']);
+    }
+    if (_exportTarget === 'supply') {
+      const totalVal = rows.reduce((s,r)=>s+(Number(r[5])||0),0); // col 5 = ราคารวม
+      sheetData.push(['', '', '', '', '', 'มูลค่าสินค้ารวม (฿)', totalVal, '']);
     }
     sheetData.push(['', `จำนวนทั้งหมด: ${rows.length} รายการ`]);
 
@@ -5496,7 +5500,10 @@ ${calendarHTML}
           </div>
         </div>`;
     } else if (_exportTarget === 'produce' || _exportTarget === 'supply') {
-      const totalQty = rows.reduce((s,r) => s + (Number(r[2])||0), 0);
+      const totalVal = _exportTarget === 'supply'
+        ? rows.reduce((s,r) => s + (Number(r[5])||0), 0)   // col 5 = ราคารวม
+        : rows.reduce((s,r) => s + (Number(r[2])||0), 0);   // produce: col 2 = qty
+      const valLabel = _exportTarget === 'supply' ? 'มูลค่าสินค้ารวม (฿)' : 'ปริมาณรวม (กก.)';
       summaryHTML = `
         <div style="display:flex;gap:16px;margin-top:16px;margin-bottom:20px;">
           <div style="background:${BG_HEADER};border:1px solid ${BORDER};border-radius:8px;padding:12px 20px;min-width:140px;text-align:center;">
@@ -5504,8 +5511,8 @@ ${calendarHTML}
             <div style="font-size:22px;font-weight:700;color:${PRIMARY};font-family:Mitr,sans-serif">${totalRows}</div>
           </div>
           <div style="background:${BG_HEADER};border:1px solid ${BORDER};border-radius:8px;padding:12px 20px;min-width:140px;text-align:center;">
-            <div style="font-size:11px;color:#666;margin-bottom:4px">ปริมาณรวม</div>
-            <div style="font-size:22px;font-weight:700;color:${PRIMARY};font-family:Mitr,sans-serif">${totalQty.toLocaleString('th-TH')}</div>
+            <div style="font-size:11px;color:#666;margin-bottom:4px">${valLabel}</div>
+            <div style="font-size:22px;font-weight:700;color:${ACCENT};font-family:Mitr,sans-serif">${totalVal.toLocaleString('th-TH')}</div>
           </div>
         </div>`;
     }
