@@ -2405,10 +2405,10 @@
           <strong>Print / PDF (ปฏิทิน)</strong>
           <span style="font-size:11px;color:var(--gray-400)">หน้าปฏิทินรายเดือน</span>
         </button>
-        <button class="btn btn-outline" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;height:auto;font-size:13px" onclick="_doExport('all')">
-          <span style="font-size:24px">📦</span>
-          <strong>ทั้งหมด (JSON)</strong>
-          <span style="font-size:11px;color:var(--gray-400)">Export ข้อมูลทุกส่วน</span>
+        <button class="btn btn-outline" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;height:auto;font-size:13px" onclick="_doExport('blank')">
+          <span style="font-size:24px">📝</span>
+          <strong>ตารางเปล่า</strong>
+          <span style="font-size:11px;color:var(--gray-400)">พิมพ์ไว้จดบันทึก</span>
         </button>
       </div>
     </div>
@@ -5057,7 +5057,190 @@
     if (format === 'csv')           _exportCSV(filteredMeta);
     if (format === 'json')          _exportJSON(filteredMeta);
     if (format === 'print')         _exportPrint(filteredMeta);
+    if (format === 'blank')         _exportBlank(meta);
     if (format === 'calendar-print') _exportCalendarPrint();
+  }
+
+  // ── Blank Table Export (for manual recording) ──
+  function _exportBlank(meta) {
+    const now = new Date();
+    const dateLabel = now.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
+
+    const logoEl  = document.querySelector('.sidebar-logo img');
+    const logoSrc = logoEl ? logoEl.src : '';
+
+    const PRIMARY   = '#2d5a27';
+    const BORDER    = '#b8d4b4';
+    const BG_HEADER = '#f0f7ee';
+
+    // How many blank rows to generate — 20 default, can be more for print
+    const BLANK_ROWS = 25;
+
+    const thHTML = meta.headers.map(h =>
+      `<th style="background:${PRIMARY};color:#fff;padding:10px 12px;text-align:left;font-size:12px;font-weight:600;white-space:nowrap;border:1px solid #1d4a1a;min-width:80px">${h}</th>`
+    ).join('');
+
+    const trHTML = Array.from({length: BLANK_ROWS}, (_, i) =>
+      `<tr style="height:32px">
+        ${meta.headers.map(() =>
+          `<td style="border:1px solid ${BORDER};padding:4px 8px;"></td>`
+        ).join('')}
+      </tr>`
+    ).join('');
+
+    const win = window.open('','_blank','width=1000,height=750');
+    win.document.write(`<!DOCTYPE html>
+<html lang="th"><head>
+<meta charset="UTF-8">
+<title>ตารางเปล่า — ${meta.title} — ${farmSettings.name}</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sarabun',sans-serif;background:#fff;color:#333;padding:28px 36px;}
+  @media print{body{padding:12px 18px}.no-print{display:none!important}@page{margin:1.5cm 2cm}}
+
+  .rpt-header{display:flex;align-items:center;justify-content:space-between;
+    border-bottom:3px solid ${PRIMARY};padding-bottom:12px;margin-bottom:18px}
+  .hdr-left{display:flex;align-items:center;gap:14px}
+  .hdr-logo{width:54px;height:54px;border-radius:50%;border:3px solid #5cb85c;object-fit:cover}
+  .farm-name{font-family:'Mitr',sans-serif;font-size:17px;font-weight:600;color:${PRIMARY}}
+  .farm-sub{font-size:11px;color:#888;margin-top:2px}
+  .rpt-title{font-family:'Mitr',sans-serif;font-size:16px;font-weight:600;color:${PRIMARY};
+    border-left:4px solid #5cb85c;padding-left:10px;text-align:right}
+  .rpt-date{font-size:11px;color:#aaa;text-align:right;margin-top:3px}
+
+  .meta-row{display:flex;gap:24px;margin-bottom:14px;flex-wrap:wrap}
+  .meta-field{display:flex;flex-direction:column;gap:4px;min-width:160px}
+  .meta-label{font-size:10px;color:#999;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .meta-input{border:none;border-bottom:1.5px solid #ccc;padding:3px 0;font-size:13px;
+    font-family:'Sarabun',sans-serif;min-width:160px;outline:none}
+
+  .table-wrap{overflow-x:auto;border-radius:6px;border:1px solid ${BORDER}}
+  table{border-collapse:collapse;width:100%}
+  tbody tr:hover{background:${BG_HEADER}!important}
+
+  .print-btn{background:${PRIMARY};color:#fff;border:none;padding:9px 22px;
+    border-radius:8px;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:13px;
+    font-weight:600;margin-right:8px}
+  .close-btn{background:#f0f0f0;color:#555;border:none;padding:9px 18px;
+    border-radius:8px;cursor:pointer;font-size:13px;font-family:'Sarabun',sans-serif}
+
+  .add-rows-btn{background:#f0f7ee;color:${PRIMARY};border:1px solid #c8e0c4;
+    padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;
+    font-family:'Sarabun',sans-serif;margin-top:10px}
+
+  .footer{margin-top:20px;padding-top:12px;border-top:1px dashed ${BORDER};
+    display:flex;justify-content:space-between;font-size:11px;color:#ccc}
+
+  .sign-row{display:flex;gap:40px;margin-top:28px;flex-wrap:wrap}
+  .sign-box{flex:1;min-width:160px;text-align:center}
+  .sign-line{border-top:1px solid #999;padding-top:6px;margin-top:40px;font-size:12px;color:#666}
+</style>
+</head><body>
+
+<div class="no-print" style="margin-bottom:16px">
+  <button class="print-btn" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+  <button class="close-btn" onclick="window.close()">✕ ปิด</button>
+  <button class="add-rows-btn no-print" onclick="addBlankRows(10)">+ เพิ่มแถว 10 แถว</button>
+</div>
+
+<!-- Header -->
+<div class="rpt-header">
+  <div class="hdr-left">
+    ${logoSrc ? `<img src="${logoSrc}" class="hdr-logo">` : '<div class="hdr-logo" style="background:#f0f7ee;display:flex;align-items:center;justify-content:center;font-size:24px">🌾</div>'}
+    <div>
+      <div class="farm-name">${farmSettings.name}</div>
+      <div class="farm-sub">${farmSettings.location}${farmSettings.area?' · '+farmSettings.area+' ไร่':''}${farmSettings.owner?' · '+farmSettings.owner:''}</div>
+    </div>
+  </div>
+  <div>
+    <div class="rpt-title">📝 ${meta.title} (ตารางบันทึก)</div>
+    <div class="rpt-date">วันที่พิมพ์: ${dateLabel}</div>
+  </div>
+</div>
+
+<!-- Meta fields to fill in -->
+<div class="meta-row">
+  <div class="meta-field">
+    <span class="meta-label">วันที่บันทึก</span>
+    <input class="meta-input no-print" type="date" value="${now.toISOString().split('T')[0]}">
+    <div class="print-only" style="border-bottom:1.5px solid #ccc;min-width:160px;height:24px"></div>
+  </div>
+  <div class="meta-field">
+    <span class="meta-label">ผู้บันทึก</span>
+    <input class="meta-input no-print" type="text" placeholder="ชื่อผู้บันทึก">
+    <div class="print-only" style="border-bottom:1.5px solid #ccc;min-width:160px;height:24px"></div>
+  </div>
+  <div class="meta-field">
+    <span class="meta-label">หมายเหตุ</span>
+    <input class="meta-input no-print" type="text" placeholder="หมายเหตุเพิ่มเติม">
+    <div class="print-only" style="border-bottom:1.5px solid #ccc;min-width:240px;height:24px"></div>
+  </div>
+</div>
+
+<!-- Blank Table -->
+<div class="table-wrap">
+  <table id="blank-table">
+    <thead><tr>${thHTML}<th style="background:${PRIMARY};color:#fff;padding:10px 12px;font-size:12px;border:1px solid #1d4a1a;min-width:80px">หมายเหตุ</th></tr></thead>
+    <tbody id="blank-tbody">${trHTML}${
+      // add note column to each row
+      ''
+    }</tbody>
+  </table>
+</div>
+
+<button class="add-rows-btn no-print" onclick="addBlankRows(10)" style="margin-top:10px">+ เพิ่มแถว 10 แถว</button>
+
+<!-- Signature row -->
+<div class="sign-row" style="margin-top:32px">
+  <div class="sign-box">
+    <div class="sign-line">ผู้บันทึก / Recorder</div>
+    <div style="font-size:11px;color:#aaa;margin-top:4px">วันที่ ...................</div>
+  </div>
+  <div class="sign-box">
+    <div class="sign-line">ผู้ตรวจสอบ / Checker</div>
+    <div style="font-size:11px;color:#aaa;margin-top:4px">วันที่ ...................</div>
+  </div>
+  <div class="sign-box">
+    <div class="sign-line">ผู้อนุมัติ / Approver</div>
+    <div style="font-size:11px;color:#aaa;margin-top:4px">วันที่ ...................</div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span>ระบบจัดการฟาร์ม ${farmSettings.name} · V0.2c</span>
+  <span>หน้า 1</span>
+</div>
+
+<scr'+'ipt>
+  const PRIMARY = '${PRIMARY}';
+  const BORDER  = '${BORDER}';
+  const colCount = ${meta.headers.length + 1};
+
+  function addBlankRows(n) {
+    const tbody = document.getElementById('blank-tbody');
+    for (let i = 0; i < n; i++) {
+      const tr = document.createElement('tr');
+      tr.style.height = '32px';
+      for (let c = 0; c < colCount; c++) {
+        const td = document.createElement('td');
+        td.style.cssText = 'border:1px solid '+BORDER+';padding:4px 8px;';
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    }
+  }
+
+  document.querySelectorAll('#blank-tbody tr').forEach(tr => {
+    const td = document.createElement('td');
+    td.style.cssText = 'border:1px solid '+BORDER+';padding:4px 8px;';
+    tr.appendChild(td);
+  });
+</scr'+'ipt>
+</body></html>`);
+    win.document.close();
+    showToast('📝 เปิดตารางเปล่าสำเร็จ');
   }
 
   // ── Excel Export (.xlsx) with formatting ──
