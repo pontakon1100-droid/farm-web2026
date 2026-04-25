@@ -2364,53 +2364,68 @@
 
 <!-- ===== EXPORT MODAL ===== -->
 <div class="modal-overlay" id="modal-export">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:700px;width:95vw">
     <div class="modal-header">
       <div class="modal-title" id="export-modal-title">📤 Export ข้อมูล</div>
       <button class="modal-close" onclick="closeModal('modal-export')">✕</button>
     </div>
-    <div style="padding:4px 0 16px;">
-      <div style="font-size:13px;color:var(--gray-500);margin-bottom:12px;" id="export-modal-desc"></div>
-      <!-- Date range filter -->
-      <div style="display:flex;gap:8px;align-items:flex-end;background:var(--gray-50);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:14px;">
-        <div style="flex:1">
-          <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">ตั้งแต่วันที่</div>
-          <input type="date" class="form-control" id="export-date-from" style="font-size:12px;padding:6px 8px;" oninput="_updateExportCount()">
+    <div style="display:flex;gap:16px;padding:4px 0 16px;flex-wrap:wrap;">
+
+      <!-- LEFT: row selection -->
+      <div style="flex:1;min-width:260px;">
+        <!-- Date filter -->
+        <div style="display:flex;gap:6px;align-items:flex-end;background:var(--gray-50);border-radius:var(--radius-md);padding:8px 10px;margin-bottom:10px;">
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--gray-500);margin-bottom:3px;">ตั้งแต่</div>
+            <input type="date" class="form-control" id="export-date-from" style="font-size:12px;padding:5px 7px;" oninput="_rebuildExportRows()">
+          </div>
+          <div style="flex:1">
+            <div style="font-size:10px;color:var(--gray-500);margin-bottom:3px;">ถึง</div>
+            <input type="date" class="form-control" id="export-date-to" style="font-size:12px;padding:5px 7px;" oninput="_rebuildExportRows()">
+          </div>
+          <button class="btn btn-outline" style="font-size:11px;padding:5px 8px;white-space:nowrap" onclick="document.getElementById('export-date-from').value='';document.getElementById('export-date-to').value='';_rebuildExportRows()">✕</button>
         </div>
-        <div style="flex:1">
-          <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px;">ถึงวันที่</div>
-          <input type="date" class="form-control" id="export-date-to" style="font-size:12px;padding:6px 8px;" oninput="_updateExportCount()">
+
+        <!-- Select all bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:var(--green-50);border:1px solid var(--green-200);border-radius:var(--radius-sm);margin-bottom:6px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;cursor:pointer;">
+            <input type="checkbox" id="export-chk-all" onchange="_exportToggleAll(this.checked)"> เลือกทั้งหมด
+          </label>
+          <span id="export-count-label" style="font-size:11px;color:var(--green-700);font-weight:600;"></span>
         </div>
-        <button class="btn btn-outline" style="font-size:11px;padding:6px 10px;white-space:nowrap" onclick="document.getElementById('export-date-from').value='';document.getElementById('export-date-to').value='';_updateExportCount()">✕ ล้าง</button>
+
+        <!-- Row list -->
+        <div id="export-row-list" style="max-height:320px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:var(--radius-sm);">
+          <!-- populated by JS -->
+        </div>
       </div>
-      <div style="font-size:12px;color:var(--green-700);font-weight:600;margin-bottom:10px;" id="export-count-label"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <button class="btn btn-outline" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;height:auto;font-size:13px" onclick="_doExport('excel')">
-          <span style="font-size:24px">📗</span>
-          <strong>Excel (.xlsx)</strong>
-          <span style="font-size:11px;color:var(--gray-400)">ตารางจัดรูปแบบสวยงาม</span>
+
+      <!-- RIGHT: format buttons -->
+      <div style="width:160px;display:flex;flex-direction:column;gap:8px;padding-top:4px;">
+        <div style="font-size:11px;font-weight:600;color:var(--gray-500);margin-bottom:2px;">เลือกรูปแบบ</div>
+        <button class="btn btn-outline" style="padding:10px;display:flex;align-items:center;gap:8px;font-size:13px;justify-content:flex-start" onclick="_doExport('excel')">
+          <span style="font-size:18px">📗</span><span><strong>Excel</strong><br><span style="font-size:10px;color:var(--gray-400)">.xlsx</span></span>
         </button>
-        <button class="btn btn-outline" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;height:auto;font-size:13px" onclick="_doExport('json')">
-          <span style="font-size:24px">🗄️</span>
-          <strong>JSON</strong>
-          <span style="font-size:11px;color:var(--gray-400)">สำรองข้อมูลครบถ้วน</span>
+        <button class="btn btn-outline" style="padding:10px;display:flex;align-items:center;gap:8px;font-size:13px;justify-content:flex-start" onclick="_doExport('csv')">
+          <span style="font-size:18px">📊</span><span><strong>CSV</strong><br><span style="font-size:10px;color:var(--gray-400)">Google Sheets</span></span>
         </button>
-        <button class="btn btn-outline" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;height:auto;font-size:13px" onclick="_doExport('print')">
-          <span style="font-size:24px">🖨️</span>
-          <strong>Print / PDF (ตาราง)</strong>
-          <span style="font-size:11px;color:var(--gray-400)">พิมพ์หรือบันทึก PDF</span>
+        <button class="btn btn-outline" style="padding:10px;display:flex;align-items:center;gap:8px;font-size:13px;justify-content:flex-start" onclick="_doExport('print')">
+          <span style="font-size:18px">🖨️</span><span><strong>PDF</strong><br><span style="font-size:10px;color:var(--gray-400)">พิมพ์/บันทึก</span></span>
         </button>
-        <button class="btn btn-outline" id="export-btn-calendar" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;height:auto;font-size:13px;display:none" onclick="_doExport('calendar-print')">
-          <span style="font-size:24px">📅</span>
-          <strong>Print / PDF (ปฏิทิน)</strong>
-          <span style="font-size:11px;color:var(--gray-400)">หน้าปฏิทินรายเดือน</span>
+        <button class="btn btn-outline" id="export-btn-calendar" style="padding:10px;display:flex;align-items:center;gap:8px;font-size:13px;justify-content:flex-start;display:none" onclick="_doExport('calendar-print')">
+          <span style="font-size:18px">📅</span><span><strong>ปฏิทิน</strong><br><span style="font-size:10px;color:var(--gray-400)">รายเดือน</span></span>
         </button>
-        <button class="btn btn-outline" style="padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;height:auto;font-size:13px" onclick="_doExport('blank')">
-          <span style="font-size:24px">📝</span>
-          <strong>ตารางเปล่า</strong>
-          <span style="font-size:11px;color:var(--gray-400)">พิมพ์ไว้จดบันทึก</span>
+        <button class="btn btn-outline" style="padding:10px;display:flex;align-items:center;gap:8px;font-size:13px;justify-content:flex-start" onclick="_doExport('json')">
+          <span style="font-size:18px">🗄️</span><span><strong>JSON</strong><br><span style="font-size:10px;color:var(--gray-400)">สำรองข้อมูล</span></span>
+        </button>
+        <button class="btn btn-outline" style="padding:10px;display:flex;align-items:center;gap:8px;font-size:13px;justify-content:flex-start" onclick="_doExport('blank')">
+          <span style="font-size:18px">📝</span><span><strong>ตารางเปล่า</strong><br><span style="font-size:10px;color:var(--gray-400)">จดบันทึก</span></span>
+        </button>
+        <button class="btn btn-outline" style="padding:10px;display:flex;align-items:center;gap:8px;font-size:13px;justify-content:flex-start" onclick="_doExport('all')">
+          <span style="font-size:18px">📦</span><span><strong>Backup</strong><br><span style="font-size:10px;color:var(--gray-400)">ทุกส่วน JSON</span></span>
         </button>
       </div>
+
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-export')">ปิด</button>
@@ -4949,7 +4964,6 @@
   // ============================================================
   // ===== EXPORT SYSTEM =====
   // ============================================================
-  let _exportTarget = '';
 
   const _exportMeta = {
     crops: {
@@ -5008,56 +5022,126 @@
     }
   };
 
+  // ============================================================
+  // ===== EXPORT SYSTEM — row checkbox selection =====
+  // ============================================================
+  let _exportTarget   = '';
+  let _exportAllRows  = []; // all rows after date filter
+  let _exportSelRows  = []; // indices of selected rows (empty = all selected)
+
   function openExportModal(target) {
-    _exportTarget = target;
+    _exportTarget  = target;
+    _exportSelRows = [];
     const meta = _exportMeta[target];
     if (!meta) return;
     document.getElementById('export-modal-title').textContent = '📤 Export ' + meta.title;
-    document.getElementById('export-modal-desc').textContent  = 'เลือกช่วงวันที่ (ไม่บังคับ) และรูปแบบไฟล์';
-    // Show calendar-specific print button only for calendar
+    // Show/hide calendar print button
     const calBtn = document.getElementById('export-btn-calendar');
     if (calBtn) calBtn.style.display = target === 'calendar' ? 'flex' : 'none';
-    // reset date range
+    // Reset date range
     document.getElementById('export-date-from').value = '';
     document.getElementById('export-date-to').value   = '';
-    _updateExportCount();
+    _rebuildExportRows();
     document.getElementById('modal-export').classList.add('open');
   }
 
-  function _updateExportCount() {
+  function _rebuildExportRows() {
     const meta = _exportMeta[_exportTarget];
     if (!meta) return;
-    const rows = _getFilteredExportRows(meta);
-    const el = document.getElementById('export-count-label');
-    if (el) el.textContent = '📋 ' + rows.length + ' รายการที่จะ Export';
-  }
-
-  function _getFilteredExportRows(meta) {
     const from = document.getElementById('export-date-from')?.value || '';
     const to   = document.getElementById('export-date-to')?.value   || '';
-    const rows = meta.rows();
-    // Only filter by date for sections that have a date column (index 0)
+    let rows   = meta.rows();
     const dateTargets = ['activities','sales','calendar','crops'];
-    if ((!from && !to) || !dateTargets.includes(_exportTarget)) return rows;
-    return rows.filter(r => {
-      const d = String(r[0] || '');
-      if (from && d < from) return false;
-      if (to   && d > to)   return false;
-      return true;
-    });
+    if ((from || to) && dateTargets.includes(_exportTarget)) {
+      rows = rows.filter(r => {
+        const d = String(r[0] || '');
+        if (from && d < from) return false;
+        if (to   && d > to)   return false;
+        return true;
+      });
+    }
+    _exportAllRows = rows;
+
+    // Render row list with checkboxes
+    const listEl = document.getElementById('export-row-list');
+    if (!listEl) return;
+    if (rows.length === 0) {
+      listEl.innerHTML = '<div style="padding:16px;text-align:center;color:var(--gray-400);font-size:13px;">ไม่มีข้อมูล</div>';
+      _updateExportCountLabel();
+      return;
+    }
+
+    // Determine key columns to display per section
+    const colMap = {
+      crops:       [0,1,5],   // ชื่อ, ชนิด, สถานะ
+      activities:  [0,1,2],   // วันที่, ประเภท, แปลง
+      sales:       [0,1,2,6], // วันที่, สินค้า, ลูกค้า, รวม
+      customers:   [0,1,4],   // ชื่อ, ประเภท, ยอด
+      produce:     [0,1,2],   // ชื่อ, Crop, คงเหลือ
+      supply:      [0,1,2,5], // ชื่อ, หมวด, คงเหลือ, ราคารวม
+      calendar:    [0,1,2],   // หัวข้อ, วันเริ่ม, วันสิ้นสุด
+      requisitions:[0,1,2,4], // วันที่, รายการ, จำนวน, ผู้เบิก
+    };
+    const cols = colMap[_exportTarget] || [0, 1];
+    const headers = meta.headers;
+
+    listEl.innerHTML = rows.map((r, i) => {
+      const preview = cols.map(ci => `<span style="font-size:11px;color:var(--gray-500)">${headers[ci]}:</span> <span style="font-size:12px">${r[ci]??'—'}</span>`).join('  ·  ');
+      return `<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--gray-100);${i%2===1?'background:var(--gray-50)':''}">
+        <input type="checkbox" class="exp-row-chk" data-idx="${i}" checked onchange="_onExportRowChk()">
+        <span style="min-width:20px;font-size:11px;color:var(--gray-400);font-weight:600">#${i+1}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${preview}</span>
+      </label>`;
+    }).join('');
+
+    _updateExportCountLabel();
+    document.getElementById('export-chk-all').checked = true;
   }
+
+  function _onExportRowChk() {
+    const all = [...document.querySelectorAll('.exp-row-chk')];
+    const chk = all.filter(c => c.checked);
+    document.getElementById('export-chk-all').checked = chk.length === all.length;
+    _updateExportCountLabel();
+  }
+
+  function _exportToggleAll(checked) {
+    document.querySelectorAll('.exp-row-chk').forEach(c => c.checked = checked);
+    _updateExportCountLabel();
+  }
+
+  function _updateExportCountLabel() {
+    const all = [...document.querySelectorAll('.exp-row-chk')];
+    const chk = all.filter(c => c.checked);
+    const el  = document.getElementById('export-count-label');
+    if (el) el.textContent = `✅ เลือก ${chk.length} / ${all.length} รายการ`;
+  }
+
+  // Get only checked rows for export
+  function _getSelectedExportRows() {
+    const checked = [...document.querySelectorAll('.exp-row-chk:checked')].map(c => parseInt(c.dataset.idx));
+    // If none checked, export all
+    if (checked.length === 0) return _exportAllRows;
+    return checked.map(i => _exportAllRows[i]);
+  }
+
+  // Legacy compatibility
+  function _updateExportCount() { _updateExportCountLabel(); }
+  function _getFilteredExportRows(meta) { return _exportAllRows.length ? _exportAllRows : meta.rows(); }
 
   function _doExport(format) {
     const meta = _exportMeta[_exportTarget];
     if (!meta && format !== 'all') return;
     closeModal('modal-export');
-    if (format === 'all')           { exportData(); return; }
-    const filteredMeta = { ...meta, rows: () => _getFilteredExportRows(meta) };
-    if (format === 'excel')         _exportExcel(filteredMeta);
-    if (format === 'csv')           _exportCSV(filteredMeta);
-    if (format === 'json')          _exportJSON(filteredMeta);
-    if (format === 'print')         _exportPrint(filteredMeta);
-    if (format === 'blank')         _exportBlank(meta);
+    if (format === 'all') { exportData(); return; }
+    // Build meta with only selected rows
+    const selRows    = _getSelectedExportRows();
+    const selMeta    = { ...meta, rows: () => selRows };
+    if (format === 'excel')          _exportExcel(selMeta);
+    if (format === 'csv')            _exportCSV(selMeta);
+    if (format === 'json')           _exportJSON(selMeta);
+    if (format === 'print')          _exportPrint(selMeta);
+    if (format === 'blank')          _exportBlank(meta);
     if (format === 'calendar-print') _exportCalendarPrint();
   }
 
