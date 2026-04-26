@@ -5297,33 +5297,37 @@
   <span>หน้า 1</span>
 </div>
 
-<scr'+'ipt>
-  const PRIMARY = '${PRIMARY}';
-  const BORDER  = '${BORDER}';
-  const colCount = ${meta.headers.length + 1};
-
-  function addBlankRows(n) {
-    const tbody = document.getElementById('blank-tbody');
-    for (let i = 0; i < n; i++) {
-      const tr = document.createElement('tr');
-      tr.style.height = '32px';
-      for (let c = 0; c < colCount; c++) {
-        const td = document.createElement('td');
-        td.style.cssText = 'border:1px solid '+BORDER+';padding:4px 8px;';
-        tr.appendChild(td);
-      }
-      tbody.appendChild(tr);
-    }
-  }
-
-  document.querySelectorAll('#blank-tbody tr').forEach(tr => {
-    const td = document.createElement('td');
-    td.style.cssText = 'border:1px solid '+BORDER+';padding:4px 8px;';
-    tr.appendChild(td);
-  });
-</scr'+'ipt>
 </body></html>`);
     win.document.close();
+
+    // Inject JS via createElement to avoid script-tag-in-template-literal issues
+    const s = win.document.createElement('script');
+    s.textContent = `
+      const BORDER_C   = '${BORDER}';
+      const COL_COUNT  = ${meta.headers.length + 1};
+
+      function addBlankRows(n) {
+        const tbody = document.getElementById('blank-tbody');
+        for (let i = 0; i < n; i++) {
+          const tr = document.createElement('tr');
+          tr.style.height = '32px';
+          for (let c = 0; c < COL_COUNT; c++) {
+            const td = document.createElement('td');
+            td.style.cssText = 'border:1px solid '+BORDER_C+';padding:4px 8px;';
+            tr.appendChild(td);
+          }
+          tbody.appendChild(tr);
+        }
+      }
+
+      // Add note column to existing blank rows
+      document.querySelectorAll('#blank-tbody tr').forEach(tr => {
+        const td = document.createElement('td');
+        td.style.cssText = 'border:1px solid '+BORDER_C+';padding:4px 8px;';
+        tr.appendChild(td);
+      });
+    `;
+    win.document.body.appendChild(s);
     showToast('📝 เปิดตารางเปล่าสำเร็จ');
   }
 
