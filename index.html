@@ -269,6 +269,32 @@
   }
   .sel-count { font-size: 13px; font-weight: 600; color: var(--green-700); flex: 1; }
 
+  /* ===== PROJECT TIMELINE ===== */
+  .tl-wrap { position:relative; padding-left:28px; }
+  .tl-wrap::before { content:''; position:absolute; left:10px; top:0; bottom:0; width:2px; background:var(--gray-200); border-radius:2px; }
+  .tl-item { position:relative; margin-bottom:14px; }
+  .tl-dot {
+    position:absolute; left:-22px; top:2px;
+    width:16px; height:16px; border-radius:50%;
+    border:2px solid #fff; box-shadow:0 0 0 2px var(--gray-200);
+    display:flex; align-items:center; justify-content:center;
+    font-size:9px; z-index:1;
+  }
+  .tl-item.tl-done  .tl-dot { background:#22c55e; box-shadow:0 0 0 2px #22c55e44; }
+  .tl-item.tl-doing .tl-dot { background:#3b82f6; box-shadow:0 0 0 2px #3b82f644; animation:tlpulse 1.5s infinite; }
+  .tl-item.tl-issue .tl-dot { background:#ef4444; box-shadow:0 0 0 2px #ef444444; }
+  .tl-item.tl-todo  .tl-dot { background:#e5e7eb; box-shadow:0 0 0 2px #e5e7eb88; }
+  .tl-item.tl-skip  .tl-dot { background:#d1d5db; box-shadow:0 0 0 2px #d1d5db44; }
+  @keyframes tlpulse { 0%,100%{box-shadow:0 0 0 2px #3b82f644} 50%{box-shadow:0 0 0 5px #3b82f622} }
+  .tl-card {
+    background:#fff; border:1px solid var(--gray-200); border-radius:var(--radius-md);
+    padding:9px 12px; transition:box-shadow .15s;
+  }
+  .tl-card:hover { box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  .tl-item.tl-doing .tl-card { border-color:#93c5fd; background:#eff6ff; }
+  .tl-item.tl-done  .tl-card { border-color:#bbf7d0; background:#f0fdf4; }
+  .tl-item.tl-issue .tl-card { border-color:#fca5a5; background:#fff1f2; }
+
   /* ===== PAGES ===== */
   .page { display: none; }
   .page.active { display: block; }
@@ -1092,134 +1118,152 @@
 
     <!-- ===== DASHBOARD PAGE ===== -->
     <div class="page active" id="page-dashboard">
-      <div class="stat-grid">
-        <div class="stat-card green">
-          <div class="stat-label">รายได้เดือนนี้</div>
+
+      <!-- ── TODAY BANNER ── -->
+      <div id="dash-today-banner" style="background:linear-gradient(135deg,#2d5a27,#3d7a35);border-radius:12px;padding:16px 20px;margin-bottom:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:11px;opacity:.7;margin-bottom:2px">สวัสดีวันนี้ 👋</div>
+          <div style="font-family:'Mitr',sans-serif;font-size:17px;font-weight:600" id="dash-today-msg">กำลังโหลด...</div>
+          <div style="font-size:11px;opacity:.65;margin-top:2px" id="dash-today-sub"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="openCropModal()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'Sarabun',sans-serif">🌱 เพิ่มพืชผล</button>
+          <button onclick="openSaleModal()" style="background:#fff;border:none;color:#2d5a27;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600;font-family:'Sarabun',sans-serif">💰 บันทึกขาย</button>
+        </div>
+      </div>
+
+      <!-- ── STAT CARDS ── -->
+      <div class="stat-grid" style="margin-bottom:16px">
+        <div class="stat-card green" style="cursor:pointer" onclick="navigate('sales',document.querySelector('[onclick*=\'sales\']'))">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="stat-label">รายได้เดือนนี้</div>
+            <span style="font-size:20px">💰</span>
+          </div>
           <div class="stat-value" id="dash-revenue">—</div>
           <div class="stat-change" id="dash-revenue-sub">—</div>
         </div>
-        <div class="stat-card amber">
-          <div class="stat-label">ผลผลิตรวม</div>
+        <div class="stat-card amber" style="cursor:pointer" onclick="navigate('crops',document.querySelector('[onclick*=\'crops\']'))">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="stat-label">ผลผลิตรวม</div>
+            <span style="font-size:20px">🌾</span>
+          </div>
           <div class="stat-value" id="dash-yield">—</div>
           <div class="stat-change" id="dash-yield-sub">—</div>
         </div>
-        <div class="stat-card sky">
-          <div class="stat-label">พื้นที่เพาะปลูก</div>
+        <div class="stat-card sky" style="cursor:pointer" onclick="navigate('inventory',document.querySelector('[onclick*=\'inventory\']'))">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="stat-label">พื้นที่เพาะปลูก</div>
+            <span style="font-size:20px">🗺️</span>
+          </div>
           <div class="stat-value" id="dash-area">—</div>
           <div class="stat-change" id="dash-area-sub">—</div>
         </div>
-        <div class="stat-card earth">
-          <div class="stat-label">ลูกค้าทั้งหมด</div>
+        <div class="stat-card earth" style="cursor:pointer" onclick="navigate('customers',document.querySelector('[onclick*=\'customers\']'))">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="stat-label">ลูกค้าทั้งหมด</div>
+            <span style="font-size:20px">👥</span>
+          </div>
           <div class="stat-value" id="dash-customers">—</div>
           <div class="stat-change" id="dash-customers-sub">—</div>
         </div>
       </div>
 
-      <!-- ── รายได้รายเดือน + น้ำหนักรายเดือนแยกชนิด ── -->
-      <div class="two-col">
-        <div class="card">
+      <!-- ── ROW 1: สิ่งที่ต้องทำวันนี้ + แจ้งเตือน ── -->
+      <div class="two-col" style="margin-bottom:14px">
+
+        <!-- สิ่งที่ต้องทำ / ควรทำต่อ -->
+        <div class="card" style="border-left:4px solid #3b82f6">
           <div class="card-header">
             <div>
-              <div class="card-title">รายได้รายเดือน</div>
-              <div class="card-subtitle">ปี 2569</div>
+              <div class="card-title">✅ สิ่งที่ควรทำต่อ</div>
+              <div class="card-subtitle" id="dash-todo-sub">อัปเดตล่าสุด</div>
             </div>
           </div>
-          <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:#5cb85c"></div>รายรับ</div>
-          </div>
-          <div class="chart-box" style="height:220px">
-            <canvas id="revenueChart"></canvas>
-          </div>
+          <div id="dash-todo-list" style="display:flex;flex-direction:column;gap:7px;"></div>
         </div>
 
-        <div class="card">
+        <!-- การแจ้งเตือนสำคัญ -->
+        <div class="card" style="border-left:4px solid #ef4444">
           <div class="card-header">
-            <div>
-              <div class="card-title">น้ำหนักขายรายเดือน (กก.)</div>
-              <div class="card-subtitle" id="weight-subtitle">แยกตามชนิดพืช</div>
-            </div>
-          </div>
-          <div class="legend" id="weight-legend"></div>
-          <div class="chart-box" style="height:220px">
-            <canvas id="weightChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── กิจกรรมล่าสุด ── -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">กิจกรรมล่าสุด</div>
-            <button class="btn btn-outline" style="font-size:12px;padding:5px 10px;" onclick="navigate('activities', document.querySelector('[onclick*=\'activities\']'))">ดูทั้งหมด</button>
-          </div>
-          <div id="dash-recent-activities"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">ยอดขายแยกตามสินค้า</div>
-              <div class="card-subtitle" id="pie-subtitle">—</div>
-            </div>
-          </div>
-          <div class="legend" id="pie-legend"></div>
-          <div class="chart-box" style="height:220px">
-            <canvas id="pieChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── ผลผลิตคาด vs จริง + ช่องทางการขาย ── -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">ผลผลิตคาด vs ได้จริง (กก.)</div>
-              <div class="card-subtitle">จากข้อมูลพืชผลปัจจุบัน</div>
-            </div>
-          </div>
-          <div class="legend">
-            <div class="legend-item"><div class="legend-dot" style="background:#5cb85c"></div>ผลผลิตคาด</div>
-            <div class="legend-item"><div class="legend-dot" style="background:#e8a820"></div>ผลผลิตที่ได้</div>
-          </div>
-          <div class="chart-box" id="harvest-chart-wrap" style="height:220px">
-            <canvas id="harvestChart"></canvas>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">ช่องทางการขาย</div>
-              <div class="card-subtitle">สัดส่วนยอดขาย</div>
-            </div>
-          </div>
-          <div class="legend" id="channel-legend"></div>
-          <div class="chart-box" style="height:220px">
-            <canvas id="channelChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── ความคืบหน้าพืชผล + การแจ้งเตือน ── -->
-      <div class="two-col">
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">ความคืบหน้าพืชผล</div>
-            <button class="btn btn-outline" style="font-size:12px;padding:5px 10px;" onclick="navigate('crops', document.querySelector('[onclick*=\'crops\']'))">ดูทั้งหมด</button>
-          </div>
-          <div id="dash-crop-progress"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">การแจ้งเตือน</div>
-            <button class="btn btn-outline" style="font-size:12px;padding:5px 10px;" onclick="navigate('inventory', document.querySelector('[onclick*=\'inventory\']'))">ดูทั้งหมด</button>
+            <div class="card-title">🔔 การแจ้งเตือน</div>
+            <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="navigate('inventory', document.querySelector('[onclick*=\'inventory\']'))">ดูคลัง</button>
           </div>
           <div class="alert-list" id="dash-alerts"></div>
         </div>
       </div>
+
+      <!-- ── ROW 2: กราฟรายได้ + กิจกรรมล่าสุด ── -->
+      <div class="two-col" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">📈 รายได้รายเดือน</div>
+              <div class="card-subtitle">ปี 2569</div>
+            </div>
+          </div>
+          <div class="chart-box" style="height:200px"><canvas id="revenueChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">📦 น้ำหนักขายรายเดือน (กก.)</div>
+              <div class="card-subtitle" id="weight-subtitle">แยกตามชนิดพืช</div>
+            </div>
+          </div>
+          <div class="legend" id="weight-legend" style="margin-bottom:4px"></div>
+          <div class="chart-box" style="height:200px"><canvas id="weightChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- ── ROW 3: ความคืบหน้าพืชผล + กิจกรรมล่าสุด ── -->
+      <div class="two-col" style="margin-bottom:14px">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">🌱 ความคืบหน้าพืชผล</div>
+            <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="navigate('crops', document.querySelector('[onclick*=\'crops\']'))">ดูทั้งหมด</button>
+          </div>
+          <div id="dash-crop-progress"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">⚡ กิจกรรมล่าสุด</div>
+            <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="navigate('activities', document.querySelector('[onclick*=\'activities\']'))">ดูทั้งหมด</button>
+          </div>
+          <div id="dash-recent-activities"></div>
+        </div>
+      </div>
+
+      <!-- ── ROW 4: ยอดขายแยกสินค้า + ช่องทางการขาย + โครงการ ── -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px" id="dash-bottom-row">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">🥧 ยอดขายแยกสินค้า</div>
+              <div class="card-subtitle" id="pie-subtitle">—</div>
+            </div>
+          </div>
+          <div class="legend" id="pie-legend"></div>
+          <div class="chart-box" style="height:180px"><canvas id="pieChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">🛣️ ช่องทางการขาย</div>
+              <div class="card-subtitle">สัดส่วนยอดขาย</div>
+            </div>
+          </div>
+          <div class="legend" id="channel-legend"></div>
+          <div class="chart-box" style="height:180px"><canvas id="channelChart"></canvas></div>
+        </div>
+        <div class="card" style="cursor:pointer" onclick="navigate('projects',document.querySelector('[onclick*=\'projects\']'))">
+          <div class="card-header">
+            <div class="card-title">📋 โครงการล่าสุด</div>
+            <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="event.stopPropagation();navigate('projects',document.querySelector('[onclick*=\'projects\']'))">ดูทั้งหมด</button>
+          </div>
+          <div id="dash-projects-preview" style="display:flex;flex-direction:column;gap:7px;"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- ===== CROPS PAGE ===== -->
@@ -2606,7 +2650,59 @@
     <div id="proj-detail-body" style="padding:0 4px 12px;"></div>
     <div class="modal-footer">
       <button class="btn btn-outline" id="proj-detail-edit-btn" onclick="editCurrentProject()">✏️ แก้ไข</button>
+      <button class="btn btn-primary" style="background:var(--sky-600);border-color:var(--sky-600)" onclick="openTimelineModal(_viewingProjId)">📅 Timeline</button>
       <button class="btn btn-outline" onclick="closeModal('modal-project-detail')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PROJECT TIMELINE MODAL ===== -->
+<div class="modal-overlay" id="modal-proj-timeline">
+  <div class="modal" style="max-width:560px;max-height:92vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title" id="tl-modal-title">📅 Timeline โครงการ</div>
+      <button class="modal-close" onclick="closeModal('modal-proj-timeline')">✕</button>
+    </div>
+    <div style="padding:0 2px 12px">
+      <div id="tl-proj-name" style="font-size:13px;color:var(--green-700);font-weight:600;margin-bottom:14px;"></div>
+
+      <!-- Add step form -->
+      <div style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px">
+        <div style="font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:10px">➕ เพิ่มขั้นตอนใหม่</div>
+        <div class="form-grid" style="gap:8px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:11px">ชื่อขั้นตอน / กิจกรรม</label>
+            <input type="text" class="form-control" id="tl-step-title" placeholder="เช่น เชื่อมโครงหลัก, เทพื้น">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:11px">วันที่</label>
+            <input type="date" class="form-control" id="tl-step-date">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label" style="font-size:11px">สถานะ</label>
+            <select class="form-control" id="tl-step-status">
+              <option value="todo">📋 รอดำเนินการ</option>
+              <option value="doing">🔄 กำลังดำเนินการ</option>
+              <option value="done">✅ เสร็จแล้ว</option>
+              <option value="issue">⚠️ มีปัญหา</option>
+              <option value="skip">⏭ ข้าม</option>
+            </select>
+          </div>
+          <div class="form-group full" style="margin:0">
+            <label class="form-label" style="font-size:11px">รายละเอียด / หมายเหตุ</label>
+            <input type="text" class="form-control" id="tl-step-note" placeholder="รายละเอียดเพิ่มเติม...">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:10px">
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 16px" onclick="addTimelineStep()">+ เพิ่มขั้นตอน</button>
+        </div>
+      </div>
+
+      <!-- Timeline display -->
+      <div id="tl-steps-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-proj-timeline')">ปิด</button>
     </div>
   </div>
 </div>
@@ -4276,7 +4372,10 @@
   // ===== DASHBOARD RENDER (from real data) =====
   // ============================================================
   function renderDashboard() {
+    const now = new Date();
+    const thisMonth = now.toISOString().slice(0,7); // YYYY-MM
     const totalRevenue  = salesData.reduce((s,i) => s + i.total, 0);
+    const monthRevenue  = salesData.filter(s => (s.date||'').startsWith(thisMonth)).reduce((s,i) => s + i.total, 0);
     const totalYieldActual = cropItems.reduce((s,i) => {
       const logTotal = (i.harvestLog||[]).reduce((ls,e)=>ls+e.weight,0);
       return s + (logTotal > 0 ? logTotal : ((i.yieldActual!==''&&i.yieldActual!=null) ? Number(i.yieldActual) : 0));
@@ -4286,54 +4385,157 @@
     const activeArea    = cropItems.filter(i => i.status !== 'เก็บเกี่ยวแล้ว').reduce((s,i) => s + (i.area || 0), 0);
 
     const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
-    set('dash-revenue',      totalRevenue.toLocaleString('th-TH') + ' <span class="stat-unit">฿</span>');
-    set('dash-revenue-sub',  'จากการขาย ' + salesData.length + ' รายการ');
+
+    // ── Stats ──
+    set('dash-revenue',      (monthRevenue||totalRevenue).toLocaleString('th-TH') + ' <span class="stat-unit">฿</span>');
+    set('dash-revenue-sub',  monthRevenue > 0 ? 'เดือนนี้ · รวม ' + totalRevenue.toLocaleString('th-TH') + ' ฿' : 'จากการขาย ' + salesData.length + ' รายการ');
     set('dash-yield',        totalYieldActual.toLocaleString('th-TH') + ' <span class="stat-unit">กก.</span>');
     set('dash-yield-sub',    'คาด ' + totalYieldEst.toLocaleString('th-TH') + ' กก. · ' + cropItems.length + ' ชนิด');
     set('dash-area',         totalArea.toFixed(1) + ' <span class="stat-unit">ไร่</span>');
     set('dash-area-sub',     'ใช้งานอยู่ ' + activeArea.toFixed(1) + ' ไร่');
     set('dash-customers',    custItems.length + ' <span class="stat-unit">ราย</span>');
-    set('dash-customers-sub', custItems.map(c => c.type).filter((v,i,a) => a.indexOf(v) === i).join(' · '));
+    set('dash-customers-sub', custItems.map(c=>c.type).filter((v,i,a)=>a.indexOf(v)===i).join(' · ') || '—');
 
-    // recent activities — max 5
-    const actColors = ['#5cb85c','#e8a820','#3b8fd4','#e04040','#a07850','#7c6fbf','#2eae8a'];
-    const recentActs = [...actItems].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 5);
+    // ── Today banner ──
+    const readyCrops  = cropItems.filter(i=>i.status==='พร้อมเก็บ');
+    const overStock   = invItems.filter(i=>i.cat==='ผลผลิต' && produceStatus(i).overstock);
+    const activeProj  = projectItems.filter(p=>p.status==='กำลังดำเนินการ');
+    const lowSupply   = invItems.filter(i=>i.cat!=='ผลผลิต'&&i.qty<=i.threshold&&i.qty>=0);
+    let bannerMsg = 'ฟาร์มของคุณวันนี้';
+    let bannerSub = [];
+    if (readyCrops.length)  bannerSub.push(`🌾 ${readyCrops.length} ชนิดพร้อมเก็บเกี่ยว`);
+    if (activeProj.length)  bannerSub.push(`📋 ${activeProj.length} โครงการกำลังดำเนินการ`);
+    if (overStock.length)   bannerSub.push(`⚠️ ผลผลิตค้างสต็อก ${overStock.length} รายการ`);
+    if (monthRevenue>0)     bannerSub.push(`💰 รายได้เดือนนี้ ${monthRevenue.toLocaleString('th-TH')} ฿`);
+    set('dash-today-msg', bannerMsg);
+    set('dash-today-sub', bannerSub.slice(0,3).join('  ·  ') || 'ยังไม่มีข้อมูล เริ่มเพิ่มข้อมูลพืชผลและกิจกรรมได้เลย');
+
+    // ── ควรทำต่อ (smart todo) ──
+    const todoEl = document.getElementById('dash-todo-list');
+    if (todoEl) {
+      const todos = [];
+      // พืชพร้อมเก็บ
+      readyCrops.slice(0,3).forEach(c => todos.push({
+        icon:'🌾', color:'#22c55e',
+        title:`เก็บเกี่ยว ${c.name}`,
+        sub: `แปลง ${c.plot} · ${c.yieldEst} กก. (คาด)`,
+        action:`navigate('crops', document.querySelector('[onclick*=\\'crops\\']'))`
+      }));
+      // วัสดุใกล้หมด
+      lowSupply.slice(0,2).forEach(i => todos.push({
+        icon:'📦', color:'#eab308',
+        title:`สั่งซื้อ ${i.name}`,
+        sub:`คงเหลือ ${i.qty} ${i.unit} · ต่ำกว่าเกณฑ์`,
+        action:`navigate('inventory', document.querySelector('[onclick*=\\'inventory\\']'))`
+      }));
+      // โครงการที่กำลังทำ
+      activeProj.slice(0,2).forEach(p => {
+        const cur = (p.timeline||[]).find(s=>s.status==='doing'||(s.status==='todo'));
+        todos.push({
+          icon:'📋', color:'#3b82f6',
+          title:`โครงการ: ${p.name}`,
+          sub: cur ? `ขั้นตอน: ${cur.title}` : `${p.pct}% · กำลังดำเนินการ`,
+          action:`navigate('projects', document.querySelector('[onclick*=\\'projects\\']'))`
+        });
+      });
+      // ผลผลิตค้างสต็อก
+      overStock.slice(0,1).forEach(i => todos.push({
+        icon:'⚠️', color:'#ef4444',
+        title:`จัดการค้างสต็อก: ${i.name}`,
+        sub:`เกินอายุไข ${Math.abs(produceDaysLeft(i)||0)} วัน · ${i.qty} กก.`,
+        action:`navigate('inventory', document.querySelector('[onclick*=\\'inventory\\']'))`
+      }));
+
+      if (todos.length === 0) {
+        todoEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px">✅ ไม่มีงานค้างหรือสิ่งที่ต้องทำเร่งด่วน</div>`;
+      } else {
+        set('dash-todo-sub', `มี ${todos.length} รายการที่ควรดำเนินการ`);
+        todoEl.innerHTML = todos.slice(0,5).map(t => `
+          <div onclick="${t.action}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--gray-50);border-radius:var(--radius-sm);cursor:pointer;border-left:3px solid ${t.color};transition:background .15s" onmouseover="this.style.background='#f0f7ee'" onmouseout="this.style.background='var(--gray-50)'">
+            <span style="font-size:18px">${t.icon}</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.title}</div>
+              <div style="font-size:11px;color:var(--gray-400);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.sub}</div>
+            </div>
+            <span style="color:var(--gray-300);font-size:14px">›</span>
+          </div>`).join('');
+      }
+    }
+
+    // ── Recent activities — max 5 ──
+    const actColors = ['#5cb85c','#e8a820','#3b8fd4','#e04040','#a07850','#7c6fbf'];
+    const recentActs = [...actItems].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
     const actEl = document.getElementById('dash-recent-activities');
-    if (actEl) actEl.innerHTML = recentActs.length ? recentActs.map((item, idx) => `
-      <div class="task-item">
-        <div class="task-dot" style="background:${actColors[idx % actColors.length]}"></div>
-        <div class="task-text">${item.type}<div class="task-meta">${fmtDate(item.date)} · ${item.plot}</div></div>
-        <span class="badge badge-sky" style="font-size:11px;white-space:nowrap">${item.person || '—'}</span>
-      </div>`).join('')
+    if (actEl) actEl.innerHTML = recentActs.length
+      ? recentActs.map((item,idx) => `
+        <div class="task-item">
+          <div class="task-dot" style="background:${actColors[idx%actColors.length]}"></div>
+          <div class="task-text">${item.type}${item.fromCrop?'<span class="badge badge-green" style="font-size:9px;margin-left:4px">🌱</span>':''}
+            <div class="task-meta">${fmtDate(item.date)} · ${item.plot}</div>
+          </div>
+          <span class="badge badge-sky" style="font-size:10px;white-space:nowrap">${item.person||'—'}</span>
+        </div>`).join('')
       : '<div style="color:var(--gray-400);font-size:13px;padding:8px 0">ยังไม่มีกิจกรรม</div>';
 
-    // crop progress — max 10
-    const statusPct = { 'เพาะกล้า':10, 'ย้ายกล้า':25, 'เติบโต':40, 'กำลังโต':65, 'พร้อมเก็บ':90, 'เก็บเกี่ยวแล้ว':100 };
-    const statusCol = { 'เพาะกล้า':'#a07850','ย้ายกล้า':'#3b8fd4','เติบโต':'#3b8fd4','กำลังโต':'#e8a820','พร้อมเก็บ':'#5cb85c','เก็บเกี่ยวแล้ว':'#9a9890' };
+    // ── Crop progress — max 10 ──
+    const statusPct = {'เพาะกล้า':10,'ย้ายกล้า':25,'เติบโต':40,'กำลังโต':65,'พร้อมเก็บ':90,'เก็บเกี่ยวแล้ว':100};
+    const statusCol = {'เพาะกล้า':'#a07850','ย้ายกล้า':'#3b8fd4','เติบโต':'#3b8fd4','กำลังโต':'#e8a820','พร้อมเก็บ':'#5cb85c','เก็บเกี่ยวแล้ว':'#9a9890'};
     const progEl = document.getElementById('dash-crop-progress');
-    if (progEl) progEl.innerHTML = cropItems.slice(0, 10).map(item => {
-      const pct = statusPct[item.status] || 50;
-      const col = statusCol[item.status] || '#9a9890';
-      return `<div class="progress-item">
-        <div class="progress-label" style="font-size:13px">${item.name}</div>
-        <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%;background:${col}"></div></div>
-        <div class="progress-val">${pct}%</div>
-      </div>`;
-    }).join('');
+    if (progEl) progEl.innerHTML = cropItems.length
+      ? cropItems.slice(0,10).map(item => {
+          const pct = statusPct[item.status] || 50;
+          const col = statusCol[item.status] || '#9a9890';
+          return `<div class="progress-item">
+            <div class="progress-label" style="font-size:12px">${item.name}
+              <span style="font-size:10px;color:var(--gray-400);margin-left:4px">${item.status}</span>
+            </div>
+            <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%;background:${col}"></div></div>
+            <div class="progress-val" style="font-size:11px">${pct}%</div>
+          </div>`;
+        }).join('')
+      : '<div style="color:var(--gray-400);font-size:13px;padding:8px">ยังไม่มีข้อมูลพืชผล</div>';
 
-    // alerts — คลังวัสดุเท่านั้น, max 10
+    // ── Alerts ──
     const alertsEl = document.getElementById('dash-alerts');
-    if (!alertsEl) return;
-    let alerts = [];
-    // เฉพาะวัสดุ (ไม่รวมผลผลิต)
-    invItems.filter(i => i.cat !== 'ผลผลิต' && i.qty === 0).forEach(item => {
-      alerts.push(`<div class="alert-item danger"><div class="alert-icon">⚠️</div><div class="alert-text"><div class="alert-title">${item.name} หมดแล้ว</div>ต้องสั่งซื้อด่วน · คงเหลือ 0 ${item.unit}</div></div>`);
-    });
-    invItems.filter(i => i.cat !== 'ผลผลิต' && i.qty > 0 && i.qty <= i.threshold).forEach(item => {
-      alerts.push(`<div class="alert-item warn"><div class="alert-icon">📦</div><div class="alert-text"><div class="alert-title">${item.name} ใกล้หมด</div>คงเหลือ ${item.qty} ${item.unit}</div></div>`);
-    });
-    if (!alerts.length) alerts.push(`<div class="alert-item info"><div class="alert-icon">✅</div><div class="alert-text"><div class="alert-title">คลังวัสดุพร้อมใช้งาน</div>ไม่มีวัสดุใกล้หมดหรือหมดสต็อก</div></div>`);
-    alertsEl.innerHTML = alerts.slice(0, 10).join('');
+    if (alertsEl) {
+      let alerts = [];
+      invItems.filter(i=>i.cat!=='ผลผลิต'&&i.qty===0).forEach(i=>
+        alerts.push(`<div class="alert-item danger"><div class="alert-icon">⚠️</div><div class="alert-text"><div class="alert-title">${i.name} หมดแล้ว</div>สั่งซื้อด่วน</div></div>`));
+      invItems.filter(i=>i.cat!=='ผลผลิต'&&i.qty>0&&i.qty<=(i.threshold||0)).forEach(i=>
+        alerts.push(`<div class="alert-item warn"><div class="alert-icon">📦</div><div class="alert-text"><div class="alert-title">${i.name} ใกล้หมด</div>${i.qty} ${i.unit}</div></div>`));
+      readyCrops.slice(0,3).forEach(c=>
+        alerts.push(`<div class="alert-item info"><div class="alert-icon">🌾</div><div class="alert-text"><div class="alert-title">${c.name} พร้อมเก็บ</div>แปลง ${c.plot}</div></div>`));
+      overStock.slice(0,2).forEach(i=>
+        alerts.push(`<div class="alert-item danger"><div class="alert-icon">🗓</div><div class="alert-text"><div class="alert-title">${i.name} ค้างสต็อก</div>เกิน ${Math.abs(produceDaysLeft(i)||0)} วัน</div></div>`));
+      if (!alerts.length) alerts.push(`<div class="alert-item info"><div class="alert-icon">✅</div><div class="alert-text"><div class="alert-title">ทุกอย่างเรียบร้อย</div>ไม่มีการแจ้งเตือน</div></div>`);
+      alertsEl.innerHTML = alerts.slice(0,8).join('');
+    }
+
+    // ── Projects preview ──
+    const projEl = document.getElementById('dash-projects-preview');
+    if (projEl) {
+      const activeProjList = [...projectItems].sort((a,b)=>b.pct-a.pct).slice(0,4);
+      if (!activeProjList.length) {
+        projEl.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:8px">ยังไม่มีโครงการ</div>';
+      } else {
+        projEl.innerHTML = activeProjList.map(p => {
+          const sm = PROJ_STATUS_MAP[p.status]||PROJ_STATUS_MAP['วางแผน'];
+          const barC = p.pct>=100?'#22c55e':p.pct>=50?'#3b82f6':'#eab308';
+          return `<div style="padding:6px 0;border-bottom:1px solid var(--gray-100)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+              <span style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%">${p.name}</span>
+              <span class="badge ${sm.cls}" style="font-size:10px">${sm.icon} ${p.status}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="flex:1;height:5px;background:var(--gray-100);border-radius:3px;overflow:hidden">
+                <div style="width:${p.pct}%;height:100%;background:${barC}"></div>
+              </div>
+              <span style="font-size:11px;font-weight:600;color:${barC}">${p.pct}%</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    }
   }
 
   // ============================================================
@@ -5255,6 +5457,38 @@
         </div>
       </div>` : ''}
 
+      <!-- Timeline preview -->
+      ${(p.timeline||[]).length > 0 ? (() => {
+        const steps = p.timeline;
+        const done  = steps.filter(s=>s.status==='done').length;
+        const pct   = Math.round(done/steps.length*100);
+        const barC  = pct>=100?'#22c55e':pct>=50?'#3b82f6':'#eab308';
+        return `<div style="margin-bottom:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div style="font-size:12px;font-weight:600;color:var(--gray-500)">📅 Timeline (${steps.length} ขั้นตอน)</div>
+            <span style="font-size:12px;font-weight:700;color:${barC}">${done}/${steps.length} เสร็จแล้ว</span>
+          </div>
+          <div style="height:5px;background:var(--gray-100);border-radius:3px;overflow:hidden;margin-bottom:10px">
+            <div style="width:${pct}%;height:100%;background:${barC};border-radius:3px"></div>
+          </div>
+          <div class="tl-wrap" style="max-height:220px;overflow-y:auto">
+            ${steps.map(step => {
+              const st = ({"done":TL_STATUS.done,"doing":TL_STATUS.doing,"todo":TL_STATUS.todo,"issue":TL_STATUS.issue,"skip":TL_STATUS.skip})[step.status] || TL_STATUS.todo;
+              return `<div class="tl-item ${st.cls}">
+                <div class="tl-dot">${st.icon}</div>
+                <div class="tl-card" style="padding:6px 10px">
+                  <div style="font-size:12px;font-weight:600">${step.title}</div>
+                  <div style="display:flex;gap:8px;margin-top:2px">
+                    ${step.date?`<span style="font-size:10px;color:var(--gray-400)">📅 ${step.date}</span>`:''}
+                    ${step.note?`<span style="font-size:10px;color:var(--gray-500)">${step.note}</span>`:''}
+                  </div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      })() : ''}
+
       <!-- ปัญหา -->
       ${p.issues ? `<div style="margin-bottom:12px;background:#fef2f2;border:1px solid var(--red-200);border-radius:var(--radius-md);padding:10px 14px">
         <div style="font-size:12px;font-weight:600;color:var(--red-400);margin-bottom:4px">⚠️ ปัญหา / ความเสี่ยง</div>
@@ -5328,7 +5562,8 @@
           <div style="font-weight:700;font-size:15px;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</div>
           <span class="badge ${sm.cls}" style="font-size:11px">${sm.icon} ${p.status}</span>
         </div>
-        <button onclick="event.stopPropagation();openProjectModal(${p.id})" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--gray-400);padding:0 0 0 8px">✏️</button>
+        <button onclick="event.stopPropagation();openProjectModal(${p.id})" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--gray-400);padding:0 0 0 4px" title="แก้ไข">✏️</button>
+        <button onclick="event.stopPropagation();openTimelineModal(${p.id})" style="background:none;border:none;cursor:pointer;font-size:16px;color:var(--sky-400);padding:0 0 0 2px" title="Timeline">📅</button>
       </div>
       ${p.desc ? `<div style="font-size:12px;color:var(--gray-500);margin-bottom:10px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">${p.desc}</div>` : ''}
       <!-- Progress -->
@@ -5353,6 +5588,27 @@
         ${p.team?.length ? `<span>👥 ${p.team.length} คน</span>` : ''}
         ${daysLeft!==null ? `<span style="color:${daysLeft<0?'var(--red-400)':daysLeft<7?'var(--amber-600)':'var(--gray-400)'}">${daysLeft<0?'เกิน '+Math.abs(daysLeft)+' วัน':'อีก '+daysLeft+' วัน'}</span>` : ''}
       </div>
+      ${(p.timeline||[]).length > 0 ? (() => {
+        const steps   = p.timeline;
+        const done    = steps.filter(s=>s.status==='done').length;
+        const doing   = steps.find(s=>s.status==='doing');
+        const issue   = steps.find(s=>s.status==='issue');
+        const current = issue || doing || steps.find(s=>s.status==='todo');
+        const pct     = Math.round(done/steps.length*100);
+        const barC    = pct>=100?'#22c55e':pct>=50?'#3b82f6':'#eab308';
+        return `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--gray-100)">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--gray-400);margin-bottom:3px">
+            <span>📅 ${steps.length} ขั้นตอน · เสร็จ ${done}</span>
+            <span style="color:${barC};font-weight:600">${pct}%</span>
+          </div>
+          <div style="height:4px;background:var(--gray-100);border-radius:2px;overflow:hidden;margin-bottom:4px">
+            <div style="width:${pct}%;height:100%;background:${barC};border-radius:2px"></div>
+          </div>
+          ${current ? `<div style="font-size:11px;color:var(--gray-500);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            ${ (TL_STATUS[current.status]||TL_STATUS.todo).icon } ขั้นตอนปัจจุบัน: <strong>${current.title}</strong>
+          </div>` : ''}
+        </div>`;
+      })() : ''}
     </div>`;
   }
 
@@ -5377,6 +5633,7 @@
       ${p.budget>0 ? `<div style="flex-shrink:0;font-size:12px;color:var(--gray-600);min-width:140px;text-align:right">${(p.spent||0).toLocaleString('th-TH')} / ${p.budget.toLocaleString('th-TH')} ฿</div>` : '<div style="min-width:140px"></div>'}
       ${daysLeft!==null ? `<div style="flex-shrink:0;font-size:11px;color:${daysLeft<0?'var(--red-400)':daysLeft<7?'var(--amber-600)':'var(--gray-400)'};min-width:80px;text-align:right">${daysLeft<0?'เกิน '+Math.abs(daysLeft)+' วัน':'อีก '+daysLeft+' วัน'}</div>` : '<div style="min-width:80px"></div>'}
       <button onclick="event.stopPropagation();openProjectModal(${p.id})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--gray-400)">✏️</button>
+      <button onclick="event.stopPropagation();openTimelineModal(${p.id})" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--sky-400)" title="Timeline">📅</button>
     </div>`;
   }
 
@@ -5443,6 +5700,158 @@
         options:{ responsive:false, plugins:{ legend:{display:false} }, cutout:'60%' }
       });
     }
+  }
+
+  // ============================================================
+  // ===== PROJECT TIMELINE =====
+  // ============================================================
+  let _tlProjId = null;
+
+  const TL_STATUS = {
+    done:  { label:'เสร็จแล้ว',         icon:'✅', color:'#22c55e', cls:'tl-done'  },
+    doing: { label:'กำลังดำเนินการ',     icon:'🔄', color:'#3b82f6', cls:'tl-doing' },
+    todo:  { label:'รอดำเนินการ',        icon:'📋', color:'#9ca3af', cls:'tl-todo'  },
+    issue: { label:'มีปัญหา',            icon:'⚠️', color:'#ef4444', cls:'tl-issue' },
+    skip:  { label:'ข้าม',              icon:'⏭',  color:'#d1d5db', cls:'tl-skip'  },
+  };
+
+  function openTimelineModal(projId) {
+    _tlProjId = projId;
+    const p = projectItems.find(x => x.id === projId);
+    if (!p) return;
+    if (!p.timeline) p.timeline = [];
+    document.getElementById('tl-modal-title').textContent = '📅 Timeline — ' + p.name;
+    document.getElementById('tl-proj-name').textContent   = p.status + ' · ' + (p.pct||0) + '% · ' + (p.timeline.length) + ' ขั้นตอน';
+    document.getElementById('tl-step-date').value   = dateStr;
+    document.getElementById('tl-step-title').value  = '';
+    document.getElementById('tl-step-note').value   = '';
+    document.getElementById('tl-step-status').value = 'todo';
+    _renderTimelineSteps(p);
+    document.getElementById('modal-proj-timeline').classList.add('open');
+  }
+
+  function _renderTimelineSteps(p) {
+    const el = document.getElementById('tl-steps-list');
+    if (!el) return;
+    const steps = p.timeline || [];
+    if (steps.length === 0) {
+      el.innerHTML = `<div style="text-align:center;padding:28px;color:var(--gray-400);font-size:13px">
+        ยังไม่มีขั้นตอน — เพิ่มขั้นตอนแรกด้านบน</div>`;
+      return;
+    }
+    const done  = steps.filter(s=>s.status==='done').length;
+    const pct   = Math.round(done/steps.length*100);
+    const barW  = pct;
+    const barC  = pct>=100?'#22c55e':pct>=50?'#3b82f6':'#eab308';
+
+    // Progress summary
+    let html = `<div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
+        <span style="color:var(--gray-500)">ความคืบหน้าขั้นตอน</span>
+        <span style="font-weight:700;color:${barC}">${done}/${steps.length} (${pct}%)</span>
+      </div>
+      <div style="height:7px;background:var(--gray-100);border-radius:4px;overflow:hidden">
+        <div style="width:${barW}%;height:100%;background:${barC};border-radius:4px;transition:width .4s"></div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+        ${Object.entries(TL_STATUS).map(([k,v]) => {
+          const cnt = steps.filter(s=>s.status===k).length;
+          return cnt > 0 ? `<span style="font-size:11px;color:${v.color}">${v.icon} ${v.label}: ${cnt}</span>` : '';
+        }).join('')}
+      </div>
+    </div>
+    <div class="tl-wrap">`;
+
+    steps.forEach((step, i) => {
+      const st = TL_STATUS[step.status] || TL_STATUS.todo;
+      html += `<div class="tl-item ${st.cls}" data-idx="${i}">
+        <div class="tl-dot">${st.icon}</div>
+        <div class="tl-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:13px;margin-bottom:2px">${step.title}</div>
+              ${step.note ? `<div style="font-size:12px;color:var(--gray-500);margin-bottom:3px">${step.note}</div>` : ''}
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                ${step.date ? `<span style="font-size:11px;color:var(--gray-400)">📅 ${step.date}</span>` : ''}
+                <span class="badge" style="font-size:10px;background:${st.color}22;color:${st.color};border:1px solid ${st.color}44">${st.icon} ${st.label}</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <!-- Quick status toggle -->
+              <select onchange="quickUpdateStep(${i},this.value)" style="font-size:10px;padding:2px 4px;border:1px solid var(--gray-200);border-radius:4px;background:#fff" title="เปลี่ยนสถานะ">
+                ${Object.entries(TL_STATUS).map(([k,v])=>`<option value="${k}" ${step.status===k?'selected':''}>${v.icon} ${v.label}</option>`).join('')}
+              </select>
+              <button onclick="deleteTimelineStep(${i})" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--gray-300);padding:2px" title="ลบ">🗑</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    el.innerHTML = html;
+  }
+
+  function addTimelineStep() {
+    const p = projectItems.find(x => x.id === _tlProjId);
+    if (!p) return;
+    const title = document.getElementById('tl-step-title').value.trim();
+    if (!title) { showToast('⚠️ กรุณากรอกชื่อขั้นตอน'); return; }
+    if (!p.timeline) p.timeline = [];
+    p.timeline.push({
+      title,
+      date:   document.getElementById('tl-step-date').value || dateStr,
+      status: document.getElementById('tl-step-status').value || 'todo',
+      note:   document.getElementById('tl-step-note').value.trim(),
+    });
+    // Reset form
+    document.getElementById('tl-step-title').value  = '';
+    document.getElementById('tl-step-note').value   = '';
+    document.getElementById('tl-step-status').value = 'todo';
+    document.getElementById('tl-proj-name').textContent = p.status + ' · ' + (p.pct||0) + '% · ' + p.timeline.length + ' ขั้นตอน';
+    _renderTimelineSteps(p);
+    // Auto-update project progress from timeline
+    _syncProjPctFromTimeline(p);
+    saveData();
+    showToast('✅ เพิ่มขั้นตอนแล้ว: ' + title);
+  }
+
+  function quickUpdateStep(idx, newStatus) {
+    const p = projectItems.find(x => x.id === _tlProjId);
+    if (!p || !p.timeline[idx]) return;
+    p.timeline[idx].status = newStatus;
+    _renderTimelineSteps(p);
+    _syncProjPctFromTimeline(p);
+    saveData();
+    showToast(`✅ อัปเดต: ${p.timeline[idx].title} → ${TL_STATUS[newStatus]?.label}`);
+  }
+
+  function deleteTimelineStep(idx) {
+    const p = projectItems.find(x => x.id === _tlProjId);
+    if (!p) return;
+    const title = p.timeline[idx]?.title || '';
+    if (!confirm(`ลบขั้นตอน "${title}"?`)) return;
+    p.timeline.splice(idx, 1);
+    document.getElementById('tl-proj-name').textContent = p.status + ' · ' + (p.pct||0) + '% · ' + p.timeline.length + ' ขั้นตอน';
+    _renderTimelineSteps(p);
+    _syncProjPctFromTimeline(p);
+    saveData();
+    showToast('🗑 ลบขั้นตอนแล้ว');
+  }
+
+  // Sync project overall pct from timeline steps
+  function _syncProjPctFromTimeline(p) {
+    if (!p.timeline || p.timeline.length === 0) return;
+    const done = p.timeline.filter(s => s.status === 'done').length;
+    const pct  = Math.round(done / p.timeline.length * 100);
+    p.pct = pct;
+    // Also update project status if all done
+    if (pct === 100 && p.status !== 'เสร็จสิ้น') {
+      p.status = 'เสร็จสิ้น';
+      showToast('🎉 โครงการเสร็จสิ้น 100%!');
+    } else if (pct > 0 && p.status === 'วางแผน') {
+      p.status = 'กำลังดำเนินการ';
+    }
+    renderProjects();
   }
 
   // ============================================================
