@@ -4013,7 +4013,7 @@
   // ===== REPORTS CHARTS (all real data) =====
   // ============================================================
   let chartsInit=false;
-  let pieChartInst,harvestChartInst,weightChartInst,channelChartInst;
+  let pieChartInst, weightChartInst, channelChartInst;
   let salesMonthChartInst, salesWeightChartInst;
 
   function initCharts(){ buildReportCharts(); chartsInit = true; }
@@ -4025,7 +4025,8 @@
     const pieColors=pieLabels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]);
     const pieTotal=pieData.reduce((s,v)=>s+v,0);
     if(pieChartInst)pieChartInst.destroy();
-    pieChartInst=new Chart(document.getElementById('pieChart'),{type:'doughnut',
+    const pieCtx = document.getElementById('pieChart');
+    if(pieCtx) pieChartInst=new Chart(pieCtx,{type:'doughnut',
       data:{labels:pieLabels,datasets:[{data:pieData,backgroundColor:pieColors,borderWidth:2,borderColor:'#fff'}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}});
     const legEl=document.getElementById('pie-legend');
@@ -4033,29 +4034,17 @@
     const subEl=document.getElementById('pie-subtitle');
     if(subEl)subEl.textContent='รวม '+pieTotal.toLocaleString('th-TH')+' ฿ · '+salesData.length+' รายการ';
 
-    // 2. Harvest cropItems est vs actual — top 5 by yieldEst
-    const hSorted = [...cropItems].sort((a,b)=>(b.yieldEst||0)-(a.yieldEst||0)).slice(0,5);
-    const hLabels = hSorted.map(c=>c.name);
-    const hEst    = hSorted.map(c=>c.yieldEst||0);
-    const hActual = hSorted.map(c=>(c.yieldActual!==''&&c.yieldActual!=null)?Number(c.yieldActual):0);
-    const hWrap=document.getElementById('harvest-chart-wrap');
-    if(hWrap)hWrap.style.height=Math.max(220,hLabels.length*44+60)+'px';
-    if(harvestChartInst)harvestChartInst.destroy();
-    harvestChartInst=new Chart(document.getElementById('harvestChart'),{type:'bar',
-      data:{labels:hLabels,datasets:[{label:'คาด',data:hEst,backgroundColor:GREEN+'99',borderRadius:3},{label:'จริง',data:hActual,backgroundColor:AMBER+'cc',borderRadius:3}]},
-      options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-        scales:{x:{grid:{color:'#eee'},ticks:{font:{family:'Sarabun'}}},y:{grid:{display:false},ticks:{font:{family:'Sarabun',size:12},autoSkip:false}}}}});
-
-    // 3. Weight by crop per month (stacked bar) — replaces income chart
+    // 2. Weight by crop per month (stacked bar)
     _buildWeightChart('weightChart', 'weight-legend', 'weight-subtitle');
 
-    // 4. Channel donut
+    // 3. Channel donut
     const byChannel=groupSalesBy('channel');
     const chLabels=Object.keys(byChannel),chData=Object.values(byChannel);
     const chColors=chLabels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]);
     const chTotal=chData.reduce((s,v)=>s+v,0);
     if(channelChartInst)channelChartInst.destroy();
-    channelChartInst=new Chart(document.getElementById('channelChart'),{type:'doughnut',
+    const chCtx = document.getElementById('channelChart');
+    if(chCtx) channelChartInst=new Chart(chCtx,{type:'doughnut',
       data:{labels:chLabels,datasets:[{data:chData,backgroundColor:chColors,borderWidth:2,borderColor:'#fff'}]},
       options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}});
     const chLeg=document.getElementById('channel-legend');
