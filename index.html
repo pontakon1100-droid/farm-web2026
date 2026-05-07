@@ -832,6 +832,8 @@
   .cal-event-pill.normal   { background:#d4f0d4; color:#1a4d1a; }
   .cal-event-pill.farm     { background:#dbeafe; color:#1a5c9a; }
   .cal-event-pill.personal { background:#ede9fe; color:#5b50a0; }
+  .cal-event-pill.project      { background:#f3e8ff; color:#6b21a8; }
+  .cal-event-pill.project_done { background:#e0fce0; color:#166534; opacity:.75; }
   .cal-more { font-size:10px; color:var(--gray-400); padding:1px 4px; cursor:pointer; }
 
   /* year view */
@@ -1537,30 +1539,54 @@
         </div>
       </div>
 
-      <!-- Monthly summary -->
-      <div class="two-col" style="margin-bottom:14px;">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">ยอดขายรายเดือน (฿)</div>
-              <div class="card-subtitle" id="sales-month-subtitle">—</div>
-            </div>
+      <!-- ── Sales Charts ── -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <div>
+            <div class="card-title">📈 ยอดขาย (฿)</div>
+            <div class="card-subtitle" id="sales-month-subtitle">—</div>
           </div>
-          <div class="chart-box" style="height:200px">
-            <canvas id="salesMonthChart"></canvas>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;gap:3px;">
+              <button id="sc-p-day"   class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesPeriod('day')">รายวัน</button>
+              <button id="sc-p-month" class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesPeriod('month')">รายเดือน</button>
+              <button id="sc-p-year"  class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesPeriod('year')">รายปี</button>
+            </div>
+            <div style="display:flex;gap:3px;">
+              <button id="sc-t-bar"  class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesChartType('bar')">📊 แท่ง</button>
+              <button id="sc-t-line" class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesChartType('line')">📈 เส้น</button>
+            </div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">น้ำหนักขายรายเดือน (กก.)</div>
-              <div class="card-subtitle" id="sales-weight-subtitle">แยกตามชนิดพืช</div>
+        <div class="chart-box" style="height:220px;">
+          <canvas id="salesMonthChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
+          <div>
+            <div class="card-title">⚖️ น้ำหนักขาย (กก.)</div>
+            <div class="card-subtitle" id="sales-weight-subtitle">—</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;gap:3px;">
+              <button id="scw-p-day"   class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesWPeriod('day')">รายวัน</button>
+              <button id="scw-p-month" class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesWPeriod('month')">รายเดือน</button>
+              <button id="scw-p-year"  class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesWPeriod('year')">รายปี</button>
+            </div>
+            <select id="scw-product" class="form-control" style="font-size:12px;padding:4px 8px;height:auto;width:auto;min-width:110px;" onchange="renderSalesCharts()">
+              <option value="__all__">🌿 ทุกชนิด</option>
+            </select>
+            <div style="display:flex;gap:3px;" id="scw-type-wrap">
+              <button id="scw-t-bar"  class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesWChartType('bar')">📊 แท่ง</button>
+              <button id="scw-t-line" class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesWChartType('line')">📈 เส้น</button>
             </div>
           </div>
-          <div class="legend" id="sales-weight-legend"></div>
-          <div class="chart-box" style="height:200px">
-            <canvas id="salesWeightChart"></canvas>
-          </div>
+        </div>
+        <div id="sales-weight-legend" class="legend" style="margin-bottom:6px;"></div>
+        <div class="chart-box" style="height:220px;">
+          <canvas id="salesWeightChart"></canvas>
         </div>
       </div>
       <div class="card">
@@ -1742,7 +1768,7 @@
       </div>
 
       <!-- Legend -->
-      <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;padding:0 4px;">
+      <div style="display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;padding:0 4px;align-items:center;">
         <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-600);">
           <div style="width:12px;height:12px;border-radius:3px;background:#e04040;"></div>สำคัญมาก
         </div>
@@ -1758,6 +1784,12 @@
         <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-600);">
           <div style="width:12px;height:12px;border-radius:3px;background:#7c6fbf;"></div>ส่วนตัว
         </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-600);">
+          <div style="width:12px;height:12px;border-radius:3px;background:#a855f7;"></div>โครงการ
+        </div>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--gray-500);cursor:pointer;margin-left:auto;">
+          <input type="checkbox" id="cal-show-projects" checked onchange="renderCalendar()"> แสดงโครงการ
+        </label>
       </div>
 
       <!-- Calendar grid container -->
@@ -4203,32 +4235,178 @@
     return inst;
   }
 
-  function renderSalesCharts() {
-    // Monthly revenue bar
-    const byMonth = salesByMonth();
-    const mLabels = Object.keys(byMonth).sort((a,b)=>{
-      const da = salesData.find(s=>new Date(s.date).toLocaleDateString('th-TH',{month:'short',year:'2-digit'})===a)?.date||'';
-      const db = salesData.find(s=>new Date(s.date).toLocaleDateString('th-TH',{month:'short',year:'2-digit'})===b)?.date||'';
-      return da.localeCompare(db);
+  // ── Sales chart state ──
+  let _scPeriod  = 'month';  // 'day' | 'month' | 'year'
+  let _scType    = 'bar';    // 'bar' | 'line'
+  let _scwPeriod = 'month';
+  let _scwType   = 'bar';
+
+  function setSalesPeriod(p) {
+    _scPeriod = p;
+    ['day','month','year'].forEach(x => {
+      const b = document.getElementById('sc-p-'+x);
+      if (b) { b.className = p===x ? 'btn btn-primary' : 'btn btn-outline'; b.style.fontSize='11px'; b.style.padding='4px 9px'; }
     });
-    const mRevenue = mLabels.map(m=>byMonth[m]);
-    const subEl = document.getElementById('sales-month-subtitle');
-    const totalRev = salesData.reduce((s,i)=>s+i.total,0);
-    if (subEl) subEl.textContent = mLabels.length+' เดือน · รวม '+totalRev.toLocaleString('th-TH')+' ฿';
+    renderSalesCharts();
+  }
+  function setSalesChartType(t) {
+    _scType = t;
+    ['bar','line'].forEach(x => {
+      const b = document.getElementById('sc-t-'+x);
+      if (b) { b.className = t===x ? 'btn btn-primary' : 'btn btn-outline'; b.style.fontSize='11px'; b.style.padding='4px 9px'; }
+    });
+    renderSalesCharts();
+  }
+  function setSalesWPeriod(p) {
+    _scwPeriod = p;
+    ['day','month','year'].forEach(x => {
+      const b = document.getElementById('scw-p-'+x);
+      if (b) { b.className = p===x ? 'btn btn-primary' : 'btn btn-outline'; b.style.fontSize='11px'; b.style.padding='4px 9px'; }
+    });
+    renderSalesCharts();
+  }
+  function setSalesWChartType(t) {
+    _scwType = t;
+    ['bar','line'].forEach(x => {
+      const b = document.getElementById('scw-t-'+x);
+      if (b) { b.className = t===x ? 'btn btn-primary' : 'btn btn-outline'; b.style.fontSize='11px'; b.style.padding='4px 9px'; }
+    });
+    renderSalesCharts();
+  }
+
+  // ── helper: get label for a sale date by period ──
+  function _saleLabel(dateStr, period) {
+    const d = new Date(dateStr);
+    if (period === 'day')   return dateStr;
+    if (period === 'year')  return 'ปี ' + (d.getFullYear() + 543);
+    return d.toLocaleDateString('th-TH', { month:'short', year:'2-digit' });
+  }
+
+  // ── helper: sorted labels for a period ──
+  function _salesSortedLabels(period) {
+    const first = {}; // label → first raw date (for sorting)
+    salesData.forEach(s => {
+      const lbl = _saleLabel(s.date, period);
+      if (!first[lbl] || s.date < first[lbl]) first[lbl] = s.date;
+    });
+    return Object.keys(first).sort((a,b) => first[a].localeCompare(first[b]));
+  }
+
+  function renderSalesCharts() {
+    // ── 1. Populate product selector ──
+    const sel = document.getElementById('scw-product');
+    if (sel) {
+      const currentVal = sel.value;
+      const products = [...new Set(salesData.map(s => s.product))].sort();
+      sel.innerHTML = '<option value="__all__">🌿 ทุกชนิด</option>' +
+        products.map(p => `<option value="${p}">${p}</option>`).join('');
+      // restore selection if still valid
+      if (products.includes(currentVal)) sel.value = currentVal;
+      // disable line toggle when "all" (stacked bar only)
+      const isAll = sel.value === '__all__';
+      const lineBtn = document.getElementById('scw-t-line');
+      if (lineBtn) { lineBtn.disabled = isAll; lineBtn.style.opacity = isAll ? '.4' : '1'; }
+      if (isAll && _scwType === 'line') { _scwType = 'bar'; setSalesWChartType('bar'); return; }
+    }
+
+    // ── 2. Revenue chart ──
+    const labels = _salesSortedLabels(_scPeriod);
+    const revenueMap = {};
+    salesData.forEach(s => { const l = _saleLabel(s.date, _scPeriod); revenueMap[l] = (revenueMap[l]||0) + s.total; });
+    const revData = labels.map(l => revenueMap[l] || 0);
+    const totalRev = salesData.reduce((s,i) => s + i.total, 0);
+    const subRev = document.getElementById('sales-month-subtitle');
+    if (subRev) subRev.textContent = labels.length + ' ' + ({day:'วัน',month:'เดือน',year:'ปี'}[_scPeriod]) + ' · รวม ' + totalRev.toLocaleString('th-TH') + ' ฿';
 
     if (salesMonthChartInst) salesMonthChartInst.destroy();
     const mc = document.getElementById('salesMonthChart');
-    if (mc) salesMonthChartInst = new Chart(mc,{
-      type:'bar',
-      data:{labels:mLabels,datasets:[{label:'รายรับ',data:mRevenue,backgroundColor:GREEN+'cc',borderRadius:4}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-        scales:{x:{grid:{display:false},ticks:{font:{family:'Sarabun'}}},
-                y:{grid:{color:'#eee'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v,font:{family:'Sarabun'}}}}}
+    if (mc) {
+      const isLine = _scType === 'line';
+      salesMonthChartInst = new Chart(mc, {
+        type: _scType,
+        data: { labels, datasets: [{
+          label: 'ยอดขาย (฿)',
+          data: revData,
+          backgroundColor: isLine ? GREEN + '33' : GREEN + 'cc',
+          borderColor: GREEN,
+          borderWidth: isLine ? 2 : 0,
+          borderRadius: isLine ? 0 : 4,
+          pointBackgroundColor: GREEN,
+          pointRadius: isLine ? 4 : 0,
+          fill: isLine,
+          tension: 0.35,
+        }]},
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { family:'Sarabun' }, maxRotation: 45 } },
+            y: { grid: { color:'#eee' }, ticks: { callback: v => v>=1000?(v/1000).toFixed(1)+'k':v, font:{ family:'Sarabun' } } }
+          }
+        }
+      });
+    }
+
+    // ── 3. Weight chart ──
+    const wLabels  = _salesSortedLabels(_scwPeriod);
+    const selProd  = document.getElementById('scw-product')?.value || '__all__';
+    const isAll    = selProd === '__all__';
+    const products = isAll ? [...new Set(salesData.map(s => s.product))] : [selProd];
+    const legEl    = document.getElementById('sales-weight-legend');
+    const subW     = document.getElementById('sales-weight-subtitle');
+
+    const weightMap = {}; // product → { label → weight }
+    salesData.forEach(s => {
+      const l = _saleLabel(s.date, _scwPeriod);
+      if (!weightMap[s.product]) weightMap[s.product] = {};
+      weightMap[s.product][l] = (weightMap[s.product][l] || 0) + (s.weight || 0);
     });
 
-    // Monthly weight by crop
+    const datasets = products.map((prod, i) => {
+      const color = CHART_COLORS[i % CHART_COLORS.length];
+      const data  = wLabels.map(l => weightMap[prod]?.[l] || 0);
+      const isLine2 = _scwType === 'line';
+      return {
+        label: prod, data,
+        backgroundColor: isLine2 ? color + '33' : color + 'cc',
+        borderColor: color,
+        borderWidth: isLine2 ? 2 : 0,
+        borderRadius: isLine2 ? 0 : 4,
+        pointBackgroundColor: color,
+        pointRadius: isLine2 ? 3 : 0,
+        fill: isLine2 && !isAll,
+        tension: 0.35,
+        stack: isAll ? 'stack' : undefined,
+      };
+    });
+
+    const totalWeight = salesData
+      .filter(s => isAll || s.product === selProd)
+      .reduce((s,i) => s + (i.weight||0), 0);
+    if (subW) subW.textContent = (isAll ? products.length + ' ชนิด' : selProd) + ' · น้ำหนักรวม ' + totalWeight.toLocaleString('th-TH') + ' กก.';
+
+    if (legEl) {
+      legEl.innerHTML = isAll
+        ? products.map((p,i) => `<div class="legend-item"><div class="legend-dot" style="background:${CHART_COLORS[i%CHART_COLORS.length]}"></div>${p}</div>`).join('')
+        : '';
+    }
+
     if (salesWeightChartInst) salesWeightChartInst.destroy();
-    salesWeightChartInst = _buildWeightChart('salesWeightChart','sales-weight-legend','sales-weight-subtitle');
+    const wc = document.getElementById('salesWeightChart');
+    if (wc) {
+      salesWeightChartInst = new Chart(wc, {
+        type: _scwType,
+        data: { labels: wLabels, datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { stacked: isAll, grid: { display: false }, ticks: { font: { family:'Sarabun' }, maxRotation: 45 } },
+            y: { stacked: isAll, grid: { color:'#eee' }, ticks: { callback: v => v+'กก.', font:{ family:'Sarabun' } } }
+          }
+        }
+      });
+    }
   }
 
   // ============================================================
@@ -4240,6 +4418,9 @@
   function renderSales(){
     _pgState.sales.page = 1;
     _renderSalesPage(_pgState.sales.page, _pgState.sales.query);
+    // refresh charts if sales page is visible
+    const pg = document.getElementById('page-sales');
+    if (pg && pg.classList.contains('active')) setTimeout(renderSalesCharts, 80);
   }
 
   function updateSaleStats(){
@@ -4656,8 +4837,67 @@
     return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   }
 
+  // ── สร้าง virtual events จากโครงการ ──
+  function getProjectCalEvents() {
+    const chk = document.getElementById('cal-show-projects');
+    if (chk && !chk.checked) return [];
+    const events = [];
+    for (const p of projectItems) {
+      const basePriority = p.status === 'มีปัญหา' ? 'medium'
+                         : p.status === 'เสร็จสิ้น' ? 'project_done' : 'project';
+      const sm = PROJ_STATUS_MAP[p.status] || PROJ_STATUS_MAP['วางแผน'];
+      // วันเริ่มต้นโครงการ
+      if (p.start) {
+        events.push({
+          id: p.id * 10000 + 9001,
+          title: `📁 ${p.name} · เริ่มต้น`,
+          start: p.start, end: p.start,
+          priority: 'project', cat: 'โครงการ',
+          _isProj: true, _projId: p.id,
+          _projStatus: p.status, _projPct: p.pct,
+          note: `${sm.icon} ${p.status} · ความคืบหน้า ${p.pct}%${p.desc?' · '+p.desc:''}`,
+        });
+      }
+      // กำหนดเสร็จโครงการ
+      if (p.end) {
+        const daysLeft = Math.ceil((new Date(p.end) - new Date()) / 86400000);
+        const endPri = daysLeft < 0 ? 'high' : daysLeft < 7 ? 'medium' : 'project';
+        events.push({
+          id: p.id * 10000 + 9002,
+          title: `📁 ${p.name} · กำหนดเสร็จ`,
+          start: p.end, end: p.end,
+          priority: endPri, cat: 'โครงการ',
+          _isProj: true, _projId: p.id,
+          _projStatus: p.status, _projPct: p.pct,
+          note: `กำหนดเสร็จ: ${sm.icon} ${p.status} · ${daysLeft < 0 ? 'เกินกำหนด ' + Math.abs(daysLeft) + ' วัน' : 'อีก ' + daysLeft + ' วัน'}`,
+        });
+      }
+      // Timeline steps ที่มีวันที่
+      (p.timeline || []).forEach((step, i) => {
+        if (!step.date) return;
+        const stepPri = step.status === 'issue' ? 'medium'
+                      : step.status === 'done'  ? 'project_done'
+                      : step.status === 'skip'  ? 'project_done'
+                      : step.status === 'doing' ? 'project' : 'project';
+        events.push({
+          id: p.id * 10000 + i,
+          title: `📁 ${step.title}`,
+          start: step.date, end: step.date,
+          priority: stepPri, cat: 'โครงการ',
+          _isProj: true, _projId: p.id,
+          _projStatus: p.status, _projPct: p.pct,
+          note: `${p.name}${step.note ? ' · ' + step.note : ''}`,
+          _stepStatus: step.status,
+        });
+      });
+    }
+    return events;
+  }
+
   function eventsOnDate(iso) {
-    return calEvents.filter(e => e.start <= iso && iso <= (e.end || e.start));
+    const regular = calEvents.filter(e => e.start <= iso && iso <= (e.end || e.start));
+    const projEvs = getProjectCalEvents().filter(e => e.start <= iso && iso <= (e.end || e.start));
+    return [...regular, ...projEvs];
   }
 
   function setCalView(v) {
@@ -4836,6 +5076,45 @@
   }
 
   function showCalDetail(id) {
+    // ── ตรวจว่าเป็น project event ──
+    const projEv = getProjectCalEvents().find(e => e.id === id);
+    if (projEv) {
+      const p  = projectItems.find(x => x.id === projEv._projId);
+      if (!p) return;
+      const sm = PROJ_STATUS_MAP[p.status] || PROJ_STATUS_MAP['วางแผน'];
+      const budgetPct = p.budget > 0 ? Math.round(p.spent / p.budget * 100) : 0;
+      const daysLeft  = p.end ? Math.ceil((new Date(p.end) - new Date()) / 86400000) : null;
+      document.getElementById('cal-detail-title').textContent = projEv.title;
+      document.getElementById('cal-detail-body').innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="badge ${sm.cls}" style="font-size:11px;padding:3px 10px;">${sm.icon} ${p.status}</span>
+            <span style="font-size:11px;background:var(--gray-100);color:var(--gray-600);padding:3px 10px;border-radius:20px;">📁 โครงการ</span>
+            ${daysLeft !== null ? `<span style="font-size:11px;color:${daysLeft<0?'var(--red-400)':daysLeft<7?'var(--amber-600)':'var(--gray-500)'}">
+              ${daysLeft<0 ? '⚠️ เกินกำหนด '+Math.abs(daysLeft)+' วัน' : '⏳ อีก '+daysLeft+' วัน'}</span>` : ''}
+          </div>
+          <div style="font-size:13px;color:var(--gray-600);">📅 <strong>ช่วงโครงการ:</strong> ${p.start||'—'} → ${p.end||'—'}</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:13px;color:var(--gray-600);">📊 ความคืบหน้า:</span>
+            <div style="flex:1;height:8px;background:var(--gray-100);border-radius:4px;overflow:hidden;">
+              <div style="width:${p.pct}%;height:100%;background:${p.pct>=100?'var(--green-500)':p.pct>=60?'#3b82f6':'var(--amber-400)'};border-radius:4px;"></div>
+            </div>
+            <strong style="font-size:13px;color:var(--green-700);">${p.pct}%</strong>
+          </div>
+          ${p.budget > 0 ? `<div style="font-size:13px;color:var(--gray-600);">💰 งบประมาณ: <strong>${(p.budget).toLocaleString('th-TH')} ฿</strong> · ใช้ไปแล้ว ${budgetPct}%</div>` : ''}
+          ${projEv.note ? `<div style="font-size:12px;color:var(--gray-500);background:var(--gray-50);padding:8px 12px;border-radius:8px;border-left:3px solid #a855f7;">📝 ${projEv.note}</div>` : ''}
+          <button class="btn btn-outline" style="font-size:12px;color:#6b21a8;border-color:#d8b4fe;"
+            onclick="closeModal('modal-cal-detail');navigate('projects',document.querySelector('[onclick*=\\'projects\\']'));setTimeout(()=>openProjectDetail(${p.id}),150);">
+            🔗 ดูรายละเอียดโครงการ
+          </button>
+        </div>`;
+      document.getElementById('cal-detail-del-btn').style.display  = 'none';
+      document.getElementById('cal-detail-edit-btn').style.display = 'none';
+      document.getElementById('modal-cal-detail').classList.add('open');
+      return;
+    }
+
+    // ── กิจกรรมปกติ ──
     const ev = calEvents.find(e => e.id === id);
     if (!ev) return;
     const pLabel = CAL_PRIORITY_LABEL[ev.priority] || ev.priority;
@@ -4852,6 +5131,8 @@
         </div>
         ${ev.note ? `<div style="font-size:13px;color:var(--gray-600);">📝 <strong>หมายเหตุ:</strong> ${ev.note}</div>` : ''}
       </div>`;
+    document.getElementById('cal-detail-del-btn').style.display  = '';
+    document.getElementById('cal-detail-edit-btn').style.display = '';
     document.getElementById('cal-detail-del-btn').onclick  = () => deleteCalEvent(id);
     document.getElementById('cal-detail-edit-btn').onclick = () => openCalEventModal(id);
     document.getElementById('modal-cal-detail').classList.add('open');
