@@ -1540,53 +1540,55 @@
       </div>
 
       <!-- ── Sales Charts ── -->
-      <div class="card" style="margin-bottom:14px;">
-        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
-          <div>
-            <div class="card-title">📈 ยอดขาย (฿)</div>
-            <div class="card-subtitle" id="sales-month-subtitle">—</div>
+      <div class="two-col" style="margin-bottom:14px;">
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:8px;">
+            <div>
+              <div class="card-title">📈 ยอดขาย (฿)</div>
+              <div class="card-subtitle" id="sales-month-subtitle">—</div>
+            </div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;">
+              <div style="display:flex;gap:3px;">
+                <button id="sc-p-day"   class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setSalesPeriod('day')">วัน</button>
+                <button id="sc-p-month" class="btn btn-primary" style="font-size:10px;padding:3px 7px;" onclick="setSalesPeriod('month')">เดือน</button>
+                <button id="sc-p-year"  class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setSalesPeriod('year')">ปี</button>
+              </div>
+              <div style="display:flex;gap:3px;">
+                <button id="sc-t-bar"  class="btn btn-primary" style="font-size:10px;padding:3px 7px;" onclick="setSalesChartType('bar')">📊</button>
+                <button id="sc-t-line" class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setSalesChartType('line')">📈</button>
+              </div>
+            </div>
           </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <div style="display:flex;gap:3px;">
-              <button id="sc-p-day"   class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesPeriod('day')">รายวัน</button>
-              <button id="sc-p-month" class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesPeriod('month')">รายเดือน</button>
-              <button id="sc-p-year"  class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesPeriod('year')">รายปี</button>
-            </div>
-            <div style="display:flex;gap:3px;">
-              <button id="sc-t-bar"  class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesChartType('bar')">📊 แท่ง</button>
-              <button id="sc-t-line" class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesChartType('line')">📈 เส้น</button>
-            </div>
+          <div class="chart-box" style="height:200px;">
+            <canvas id="salesMonthChart"></canvas>
           </div>
         </div>
-        <div class="chart-box" style="height:220px;">
-          <canvas id="salesMonthChart"></canvas>
-        </div>
-      </div>
 
-      <div class="card" style="margin-bottom:14px;">
-        <div class="card-header" style="flex-wrap:wrap;gap:10px;">
-          <div>
-            <div class="card-title">⚖️ น้ำหนักขาย (กก.)</div>
-            <div class="card-subtitle" id="sales-weight-subtitle">—</div>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-            <div style="display:flex;gap:3px;">
-              <button id="scw-p-day"   class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesWPeriod('day')">รายวัน</button>
-              <button id="scw-p-month" class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesWPeriod('month')">รายเดือน</button>
-              <button id="scw-p-year"  class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesWPeriod('year')">รายปี</button>
+        <div class="card">
+          <div class="card-header" style="flex-wrap:wrap;gap:8px;">
+            <div>
+              <div class="card-title">⚖️ น้ำหนักขาย (กก.)</div>
+              <div class="card-subtitle" id="sales-weight-subtitle">—</div>
             </div>
-            <select id="scw-product" class="form-control" style="font-size:12px;padding:4px 8px;height:auto;width:auto;min-width:110px;" onchange="renderSalesCharts()">
-              <option value="__all__">🌿 ทุกชนิด</option>
-            </select>
-            <div style="display:flex;gap:3px;" id="scw-type-wrap">
-              <button id="scw-t-bar"  class="btn btn-primary" style="font-size:11px;padding:4px 9px;" onclick="setSalesWChartType('bar')">📊 แท่ง</button>
-              <button id="scw-t-line" class="btn btn-outline" style="font-size:11px;padding:4px 9px;" onclick="setSalesWChartType('line')">📈 เส้น</button>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center;">
+              <div style="display:flex;gap:3px;">
+                <button id="scw-p-day"   class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setSalesWPeriod('day')">วัน</button>
+                <button id="scw-p-month" class="btn btn-primary" style="font-size:10px;padding:3px 7px;" onclick="setSalesWPeriod('month')">เดือน</button>
+                <button id="scw-p-year"  class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setSalesWPeriod('year')">ปี</button>
+              </div>
+              <select id="scw-product" class="form-control" style="font-size:11px;padding:3px 6px;height:auto;width:auto;max-width:100px;" onchange="renderSalesCharts()">
+                <option value="__all__">🌿 ทุกชนิด</option>
+              </select>
+              <div style="display:flex;gap:3px;" id="scw-type-wrap">
+                <button id="scw-t-bar"  class="btn btn-primary" style="font-size:10px;padding:3px 7px;" onclick="setSalesWChartType('bar')">📊</button>
+                <button id="scw-t-line" class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setSalesWChartType('line')">📈</button>
+              </div>
             </div>
           </div>
-        </div>
-        <div id="sales-weight-legend" class="legend" style="margin-bottom:6px;"></div>
-        <div class="chart-box" style="height:220px;">
-          <canvas id="salesWeightChart"></canvas>
+          <div id="sales-weight-legend" class="legend" style="margin-bottom:4px;"></div>
+          <div class="chart-box" style="height:200px;">
+            <canvas id="salesWeightChart"></canvas>
+          </div>
         </div>
       </div>
       <div class="card">
