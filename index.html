@@ -834,6 +834,28 @@
   .cal-event-pill.personal { background:#ede9fe; color:#5b50a0; }
   .cal-event-pill.project      { background:#f3e8ff; color:#6b21a8; }
   .cal-event-pill.project_done { background:#e0fce0; color:#166534; opacity:.75; }
+
+  /* ── Notification bell ── */
+  .notif-btn { position:relative; background:none; border:none; cursor:pointer; padding:6px 8px; border-radius:8px; font-size:20px; line-height:1; transition:background .15s; }
+  .notif-btn:hover { background:var(--gray-100); }
+  .notif-badge { position:absolute; top:2px; right:2px; min-width:16px; height:16px; background:#ef4444; color:#fff; border-radius:8px; font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; padding:0 3px; pointer-events:none; }
+  .notif-panel { position:fixed; top:60px; right:12px; width:320px; max-width:calc(100vw - 24px); background:#fff; border-radius:14px; box-shadow:0 8px 32px rgba(0,0,0,.16); z-index:9000; overflow:hidden; display:none; }
+  .notif-panel.open { display:block; animation:slideDown .18s ease; }
+  @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+  .notif-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--gray-100); }
+  .notif-list { max-height:400px; overflow-y:auto; }
+  .notif-item { display:flex; align-items:flex-start; gap:10px; padding:10px 16px; border-bottom:1px solid var(--gray-50); cursor:pointer; transition:background .12s; }
+  .notif-item:hover { background:var(--gray-50); }
+  .notif-item.danger { border-left:3px solid #ef4444; }
+  .notif-item.warn   { border-left:3px solid #f59e0b; }
+  .notif-item.info   { border-left:3px solid #3b82f6; }
+  .notif-item.ok     { border-left:3px solid #22c55e; }
+  .notif-icon  { font-size:18px; margin-top:1px; flex-shrink:0; }
+  .notif-title { font-size:13px; font-weight:600; color:var(--gray-700); line-height:1.3; }
+  .notif-sub   { font-size:11px; color:var(--gray-400); margin-top:1px; }
+  /* nav badge dot */
+  .nav-alert-dot { display:inline-block; width:7px; height:7px; background:#ef4444; border-radius:50%; margin-left:5px; vertical-align:middle; animation:navpulse 2s infinite; }
+  @keyframes navpulse { 0%,100%{opacity:1} 50%{opacity:.4} }
   .cal-more { font-size:10px; color:var(--gray-400); padding:1px 4px; cursor:pointer; }
 
   /* year view */
@@ -1043,13 +1065,13 @@
 
     <div class="nav-section-label">บันทึกข้อมูล</div>
     <div class="nav-item" onclick="navigate('crops', this)">
-      <span class="nav-icon">🌾</span> ข้อมูลพืชผล
+      <span class="nav-icon">🌾</span> ข้อมูลพืชผล<span class="nav-alert-dot" id="nav-dot-crops" style="display:none"></span>
     </div>
     <div class="nav-item" onclick="navigate('activities', this)">
       <span class="nav-icon">📝</span> บันทึกกิจกรรม
     </div>
     <div class="nav-item" onclick="navigate('inventory', this)">
-      <span class="nav-icon">📦</span> คลังวัสดุ-ผลผลิต
+      <span class="nav-icon">📦</span> คลังวัสดุ-ผลผลิต<span class="nav-alert-dot" id="nav-dot-inventory" style="display:none"></span>
     </div>
 
     <div class="nav-section-label">การขาย</div>
@@ -1062,7 +1084,7 @@
 
     <div class="nav-section-label">จัดการโครงการ</div>
     <div class="nav-item" onclick="navigate('projects', this)">
-      <span class="nav-icon">📋</span> โครงการทั้งหมด
+      <span class="nav-icon">📋</span> โครงการทั้งหมด<span class="nav-alert-dot" id="nav-dot-projects" style="display:none"></span>
     </div>
     <div class="nav-item" onclick="navigate('calendar', this)">
       <span class="nav-icon">📅</span> ปฏิทินกิจกรรม
@@ -1112,9 +1134,22 @@
     </div>
     <div class="topbar-actions">
       <div class="date-badge">🗓 <span id="today-date"></span></div>
+      <button class="notif-btn" id="notif-bell" onclick="toggleNotifPanel()" title="แจ้งเตือน">
+        🔔<span class="notif-badge" id="notif-badge" style="display:none">0</span>
+      </button>
       <button class="btn btn-primary" onclick="openSaleModal()">+ บันทึกการขาย</button>
     </div>
   </header>
+
+  <!-- NOTIFICATION PANEL -->
+  <div class="notif-panel" id="notif-panel">
+    <div class="notif-header">
+      <span style="font-size:14px;font-weight:700;color:var(--gray-700)">🔔 การแจ้งเตือน</span>
+      <button style="background:none;border:none;cursor:pointer;font-size:12px;color:var(--gray-400);" onclick="toggleNotifPanel()">✕ ปิด</button>
+    </div>
+    <div class="notif-list" id="notif-list"></div>
+    <div id="notif-empty" style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px;display:none;">✅ ทุกอย่างเรียบร้อย</div>
+  </div>
 
   <div class="content">
 
@@ -3318,10 +3353,8 @@
 
     closeModal('modal-crop');
     renderCrops();
+    renderNotifications();
   }
-
-  // ============================================================
-  // ===== 2. ACTIVITIES =====
   // ============================================================
   let actItems = [
     { id:1, date:'2025-04-04', type:'รดน้ำ',         plot:'A1–A3',   person:'สมชาย', material:'น้ำ 200 ลิตร',  note:'—' },
@@ -3893,6 +3926,7 @@
       _renderInvPagination('supply', supplyItems.length, sp, INV_PAGE);
     }
     updateInvStats();
+    renderNotifications();
   }
 
   function _renderInvPagination(section, total, currentPage, pageSize) {
@@ -4678,43 +4712,57 @@
     const todoEl = document.getElementById('dash-todo-list');
     if (todoEl) {
       const todos = [];
-      // พืชพร้อมเก็บ
-      readyCrops.slice(0,3).forEach(c => todos.push({
+      const todayISO = now.toISOString().slice(0,10);
+
+      // 🚨 โครงการเกินกำหนด
+      projectItems.filter(p => p.end && p.status !== 'เสร็จสิ้น' && p.status !== 'ยกเลิก' && p.end < todayISO)
+        .slice(0,2).forEach(p => {
+          const days = Math.ceil((now - new Date(p.end)) / 86400000);
+          todos.push({ icon:'🚨', color:'#ef4444', title:`โครงการเกินกำหนด: ${p.name}`, sub:`เกิน ${days} วัน · ${p.pct}%`, action:`navigate('projects',document.querySelector('[onclick*=\\'projects\\']'))` });
+        });
+      // 🌾 พืชพร้อมเก็บ
+      readyCrops.slice(0, 3).forEach(c => todos.push({
         icon:'🌾', color:'#22c55e',
         title:`เก็บเกี่ยว ${c.name}`,
-        sub: `แปลง ${c.plot} · ${c.yieldEst} กก. (คาด)`,
-        action:`navigate('crops', document.querySelector('[onclick*=\\'crops\\']'))`
+        sub:`แปลง ${c.plot} · ${c.yieldEst||'?'} กก. (คาด)`,
+        action:`navigate('crops',document.querySelector('[onclick*=\\'crops\\']'))`
       }));
-      // วัสดุใกล้หมด
-      lowSupply.slice(0,2).forEach(i => todos.push({
+      // 🌱 พืชใกล้ถึงวันเก็บ (≤ 3 วัน)
+      cropItems.filter(i => {
+        if (i.status === 'เก็บเกี่ยวแล้ว' || !i.harvestDate) return false;
+        const d = Math.ceil((new Date(i.harvestDate) - now) / 86400000);
+        return d >= 0 && d <= 3;
+      }).slice(0,2).forEach(c => {
+        const days = Math.ceil((new Date(c.harvestDate) - now) / 86400000);
+        todos.push({ icon:'🌱', color:'#16a34a', title:`${c.name} ใกล้เก็บเกี่ยว`, sub:`อีก ${days} วัน · แปลง ${c.plot}`, action:`navigate('crops',document.querySelector('[onclick*=\\'crops\\']'))` });
+      });
+      // 📦 วัสดุใกล้หมด / หมดแล้ว
+      invItems.filter(i => i.cat !== 'ผลผลิต' && i.qty === 0)
+        .slice(0,2).forEach(i => todos.push({ icon:'🚨', color:'#ef4444', title:`${i.name} หมดแล้ว`, sub:'สั่งซื้อด่วน', action:`navigate('inventory',document.querySelector('[onclick*=\\'inventory\\']'));setTimeout(()=>switchInvTab('supply'),150)` }));
+      lowSupply.slice(0, 2).forEach(i => todos.push({
         icon:'📦', color:'#eab308',
         title:`สั่งซื้อ ${i.name}`,
         sub:`คงเหลือ ${i.qty} ${i.unit} · ต่ำกว่าเกณฑ์`,
-        action:`navigate('inventory', document.querySelector('[onclick*=\\'inventory\\']'))`
+        action:`navigate('inventory',document.querySelector('[onclick*=\\'inventory\\']'));setTimeout(()=>switchInvTab('supply'),150)`
       }));
-      // โครงการที่กำลังทำ
-      activeProj.slice(0,2).forEach(p => {
-        const cur = (p.timeline||[]).find(s=>s.status==='doing'||(s.status==='todo'));
-        todos.push({
-          icon:'📋', color:'#3b82f6',
-          title:`โครงการ: ${p.name}`,
-          sub: cur ? `ขั้นตอน: ${cur.title}` : `${p.pct}% · กำลังดำเนินการ`,
-          action:`navigate('projects', document.querySelector('[onclick*=\\'projects\\']'))`
-        });
-      });
-      // ผลผลิตค้างสต็อก
-      overStock.slice(0,1).forEach(i => todos.push({
+      // ⚠️ ผลผลิตค้างสต็อก
+      overStock.slice(0, 1).forEach(i => todos.push({
         icon:'⚠️', color:'#ef4444',
         title:`จัดการค้างสต็อก: ${i.name}`,
-        sub:`เกินอายุไข ${Math.abs(produceDaysLeft(i)||0)} วัน · ${i.qty} กก.`,
-        action:`navigate('inventory', document.querySelector('[onclick*=\\'inventory\\']'))`
+        sub:`เกินอายุ ${Math.abs(produceDaysLeft(i)||0)} วัน · ${i.qty} กก.`,
+        action:`navigate('inventory',document.querySelector('[onclick*=\\'inventory\\']'));setTimeout(()=>switchInvTab('produce'),150)`
       }));
+      // 📋 โครงการกำลังทำ
+      activeProj.slice(0, 2).forEach(p => {
+        const cur = (p.timeline||[]).find(s => s.status === 'doing' || s.status === 'todo');
+        todos.push({ icon:'📋', color:'#3b82f6', title:`โครงการ: ${p.name}`, sub:cur?`ขั้นตอน: ${cur.title}`:`${p.pct}% · กำลังดำเนินการ`, action:`navigate('projects',document.querySelector('[onclick*=\\'projects\\']'))` });
+      });
 
       if (todos.length === 0) {
         todoEl.innerHTML = `<div style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px">✅ ไม่มีงานค้างหรือสิ่งที่ต้องทำเร่งด่วน</div>`;
       } else {
         set('dash-todo-sub', `มี ${todos.length} รายการที่ควรดำเนินการ`);
-        todoEl.innerHTML = todos.slice(0,5).map(t => `
+        todoEl.innerHTML = todos.slice(0, 6).map(t => `
           <div onclick="${t.action}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--gray-50);border-radius:var(--radius-sm);cursor:pointer;border-left:3px solid ${t.color};transition:background .15s" onmouseover="this.style.background='#f0f7ee'" onmouseout="this.style.background='var(--gray-50)'">
             <span style="font-size:18px">${t.icon}</span>
             <div style="flex:1;min-width:0">
@@ -4781,6 +4829,7 @@
     }
 
     // ── Projects preview ──
+    renderNotifications();
     const projEl = document.getElementById('dash-projects-preview');
     if (projEl) {
       const activeProjList = [...projectItems].sort((a,b)=>b.pct-a.pct).slice(0,4);
@@ -4806,6 +4855,125 @@
       }
     }
   }
+
+  // ============================================================
+  // ===== NOTIFICATION SYSTEM =====
+  // ============================================================
+
+  function getAlerts() {
+    const today    = new Date();
+    const todayISO = today.toISOString().slice(0, 10);
+    const alerts   = [];
+
+    // ── 1. วัสดุหมดแล้ว (critical) ──
+    invItems.filter(i => i.cat !== 'ผลผลิต' && i.qty === 0).forEach(i =>
+      alerts.push({ level:'danger', icon:'🚨', title:`${i.name} หมดแล้ว`, sub:'สั่งซื้อด่วน', page:'inventory', tab:'supply' })
+    );
+    // ── 2. วัสดุใกล้หมด ──
+    invItems.filter(i => i.cat !== 'ผลผลิต' && i.qty > 0 && i.qty <= (i.threshold || 0)).forEach(i =>
+      alerts.push({ level:'warn', icon:'📦', title:`${i.name} ใกล้หมด`, sub:`เหลือ ${i.qty} ${i.unit}`, page:'inventory', tab:'supply' })
+    );
+    // ── 3. ผลผลิตค้างสต็อก (เกินอายุไข) ──
+    invItems.filter(i => i.cat === 'ผลผลิต' && produceStatus(i).overstock).forEach(i =>
+      alerts.push({ level:'danger', icon:'⏰', title:`${i.name} เกินอายุไข`, sub:`${i.qty} กก. ควรจัดการ`, page:'inventory', tab:'produce' })
+    );
+    // ── 4. ผลผลิตใกล้หมดอายุ (≤ 2 วัน) ──
+    invItems.filter(i => {
+      if (i.cat !== 'ผลผลิต') return false;
+      const days = produceDaysLeft(i);
+      return days !== null && days >= 0 && days <= 2 && !produceStatus(i).overstock;
+    }).forEach(i => {
+      const days = produceDaysLeft(i);
+      alerts.push({ level:'warn', icon:'🕐', title:`${i.name} ใกล้หมดอายุ`, sub:`อีก ${days} วัน · ${i.qty} กก.`, page:'inventory', tab:'produce' });
+    });
+    // ── 5. พืชพร้อมเก็บเกี่ยว ──
+    cropItems.filter(i => i.status === 'พร้อมเก็บ').forEach(c =>
+      alerts.push({ level:'info', icon:'🌾', title:`${c.name} พร้อมเก็บ`, sub:`แปลง ${c.plot} · ${c.yieldEst||'?'} กก.`, page:'crops' })
+    );
+    // ── 6. พืชใกล้ถึงวันเก็บ (≤ 3 วัน) ──
+    cropItems.filter(i => {
+      if (i.status === 'เก็บเกี่ยวแล้ว' || !i.harvestDate) return false;
+      const days = Math.ceil((new Date(i.harvestDate) - today) / 86400000);
+      return days >= 0 && days <= 3;
+    }).forEach(c => {
+      const days = Math.ceil((new Date(c.harvestDate) - today) / 86400000);
+      alerts.push({ level:'warn', icon:'🌱', title:`${c.name} ใกล้เก็บเกี่ยว`, sub:`อีก ${days} วัน · แปลง ${c.plot}`, page:'crops' });
+    });
+    // ── 7. โครงการเกินกำหนด ──
+    projectItems.filter(p => p.end && p.status !== 'เสร็จสิ้น' && p.status !== 'ยกเลิก' && p.end < todayISO).forEach(p => {
+      const days = Math.ceil((today - new Date(p.end)) / 86400000);
+      alerts.push({ level:'danger', icon:'📋', title:`${p.name} เกินกำหนด`, sub:`เกิน ${days} วัน · ${p.pct}%`, page:'projects' });
+    });
+    // ── 8. โครงการมีปัญหา ──
+    projectItems.filter(p => p.status === 'มีปัญหา').forEach(p =>
+      alerts.push({ level:'warn', icon:'⚠️', title:`${p.name} มีปัญหา`, sub:`${p.pct}% · ต้องการความสนใจ`, page:'projects' })
+    );
+    return alerts;
+  }
+
+  function renderNotifications() {
+    const alerts  = getAlerts();
+    const badge   = document.getElementById('notif-badge');
+    const listEl  = document.getElementById('notif-list');
+    const emptyEl = document.getElementById('notif-empty');
+
+    // badge
+    const count = alerts.length;
+    if (badge) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = count > 0 ? 'flex' : 'none';
+    }
+
+    // nav dots
+    const pageAlerts = { crops: false, inventory: false, projects: false };
+    alerts.forEach(a => { if (pageAlerts[a.page] !== undefined) pageAlerts[a.page] = true; });
+    ['crops','inventory','projects'].forEach(p => {
+      const dot = document.getElementById('nav-dot-' + p);
+      if (dot) dot.style.display = pageAlerts[p] ? 'inline-block' : 'none';
+    });
+
+    if (!listEl) return;
+    if (count === 0) {
+      listEl.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = '';
+      return;
+    }
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    listEl.innerHTML = alerts.map(a => `
+      <div class="notif-item ${a.level}" onclick="_gotoAlert('${a.page}','${a.tab||''}')">
+        <div class="notif-icon">${a.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="notif-title">${a.title}</div>
+          <div class="notif-sub">${a.sub}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function _gotoAlert(page, tab) {
+    toggleNotifPanel();
+    navigate(page, document.querySelector(`[onclick*="'${page}'"]`));
+    if (tab === 'supply')  setTimeout(() => switchInvTab('supply'),  150);
+    if (tab === 'produce') setTimeout(() => switchInvTab('produce'), 150);
+  }
+
+  let _notifOpen = false;
+  function toggleNotifPanel() {
+    _notifOpen = !_notifOpen;
+    const panel = document.getElementById('notif-panel');
+    if (panel) panel.classList.toggle('open', _notifOpen);
+    if (_notifOpen) renderNotifications();
+  }
+  // Close panel when clicking outside
+  document.addEventListener('click', e => {
+    if (!_notifOpen) return;
+    const panel = document.getElementById('notif-panel');
+    const bell  = document.getElementById('notif-bell');
+    if (panel && !panel.contains(e.target) && bell && !bell.contains(e.target)) {
+      _notifOpen = false;
+      panel.classList.remove('open');
+    }
+  });
 
   // ============================================================
   // ===== CALENDAR =====
@@ -5840,6 +6008,7 @@
     }
     closeModal('modal-project');
     renderProjects();
+    renderNotifications();
     saveData();
   }
 
