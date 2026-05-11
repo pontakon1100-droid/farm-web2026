@@ -1043,6 +1043,49 @@
     .stat-grid { grid-template-columns: 1fr 1fr; }
     .stat-value { font-size: 17px; }
     .topbar-actions .btn span { display: none; }
+
+  /* ── Mobile card view for activities/sales/customers ── */
+  .mobile-cards { display: none; }
+  @media (max-width: 768px) {
+    .mobile-cards  { display: block; }
+    .desktop-table { display: none; }
+  }
+  .m-card {
+    background: #fff;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--gray-100);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .2s ease, box-shadow .2s ease;
+  }
+  .m-card.swiping-left { transform: translateX(-72px); }
+  .m-card-del-btn {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 72px; background: var(--red-400); color: #fff;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 20px; cursor: pointer; opacity: 0; transition: opacity .2s;
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  }
+  .m-card.swiping-left .m-card-del-btn { opacity: 1; }
+  .m-card-row  { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .m-card-meta { font-size: 11px; color: var(--gray-400); }
+  .m-card-actions { display: flex; gap: 6px; margin-top: 8px; justify-content: flex-end; }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed; bottom: 80px; right: 18px;
+    width: 52px; height: 52px;
+    background: var(--green-600); color: #fff;
+    border: none; border-radius: 50%; font-size: 26px; line-height: 1;
+    box-shadow: 0 4px 16px rgba(0,0,0,.22);
+    cursor: pointer; display: none;
+    align-items: center; justify-content: center;
+    z-index: 500; transition: transform .15s, background .15s;
+  }
+  .fab:active { transform: scale(.92); background: var(--green-700); }
+  @media (max-width: 768px) { .fab { display: flex; } }
   }
 </style>
 </head>
@@ -1229,30 +1272,38 @@
         </div>
       </div>
 
-      <!-- ── ROW 2: กราฟรายได้ + กิจกรรมล่าสุด ── -->
-      <div class="two-col" style="margin-bottom:14px">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">📈 รายได้รายเดือน</div>
-              <div class="card-subtitle">ปี 2569</div>
+      <!-- ── UNIFIED CHART ── -->
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-header" style="flex-wrap:wrap;gap:8px;">
+          <div>
+            <div class="card-title">📊 ภาพรวมข้อมูลฟาร์ม</div>
+            <div class="card-subtitle" id="dash-chart-sub">—</div>
+          </div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+            <select id="dash-chart-metric" class="form-control" style="font-size:12px;padding:4px 8px;height:auto;width:auto;" onchange="renderDashChart()">
+              <option value="revenue">💰 ยอดขาย (฿)</option>
+              <option value="weight">⚖️ น้ำหนักผลผลิต</option>
+              <option value="activities">📝 กิจกรรม</option>
+              <option value="product_pie">🥧 สินค้าขายดี</option>
+              <option value="channel_pie">🛣️ ช่องทางการขาย</option>
+              <option value="crop_status">🌱 สถานะพืชผล</option>
+            </select>
+            <div id="dcp-wrap" style="display:flex;gap:3px;">
+              <button id="dcp-day"   class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setDashPeriod('day')">วัน</button>
+              <button id="dcp-month" class="btn btn-primary"  style="font-size:10px;padding:3px 7px;" onclick="setDashPeriod('month')">เดือน</button>
+              <button id="dcp-year"  class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setDashPeriod('year')">ปี</button>
+            </div>
+            <div id="dct-wrap" style="display:flex;gap:3px;">
+              <button id="dct-bar"  class="btn btn-primary"  style="font-size:10px;padding:3px 7px;" onclick="setDashChartType('bar')">📊</button>
+              <button id="dct-line" class="btn btn-outline" style="font-size:10px;padding:3px 7px;" onclick="setDashChartType('line')">📈</button>
             </div>
           </div>
-          <div class="chart-box" style="height:200px"><canvas id="revenueChart"></canvas></div>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">📦 น้ำหนักขายรายเดือน (กก.)</div>
-              <div class="card-subtitle" id="weight-subtitle">แยกตามชนิดพืช</div>
-            </div>
-          </div>
-          <div class="legend" id="weight-legend" style="margin-bottom:4px"></div>
-          <div class="chart-box" style="height:200px"><canvas id="weightChart"></canvas></div>
-        </div>
+        <div id="dash-chart-legend" class="legend" style="margin-bottom:4px;"></div>
+        <div class="chart-box" style="height:220px;"><canvas id="dashMainChart"></canvas></div>
       </div>
 
-      <!-- ── ROW 3: ความคืบหน้าพืชผล + กิจกรรมล่าสุด ── -->
+      <!-- ── ROW: ความคืบหน้าพืชผล + กิจกรรมล่าสุด ── -->
       <div class="two-col" style="margin-bottom:14px">
         <div class="card">
           <div class="card-header">
@@ -1270,35 +1321,13 @@
         </div>
       </div>
 
-      <!-- ── ROW 4: ยอดขายแยกสินค้า + ช่องทางการขาย + โครงการ ── -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px" id="dash-bottom-row">
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">🥧 ยอดขายแยกสินค้า</div>
-              <div class="card-subtitle" id="pie-subtitle">—</div>
-            </div>
-          </div>
-          <div class="legend" id="pie-legend"></div>
-          <div class="chart-box" style="height:180px"><canvas id="pieChart"></canvas></div>
+      <!-- ── โครงการ compact ── -->
+      <div class="card" style="margin-bottom:14px;cursor:pointer" onclick="navigate('projects',document.querySelector('[onclick*=\'projects\']'))">
+        <div class="card-header">
+          <div class="card-title">📋 โครงการ</div>
+          <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="event.stopPropagation();navigate('projects',document.querySelector('[onclick*=\'projects\']'))">ดูทั้งหมด</button>
         </div>
-        <div class="card">
-          <div class="card-header">
-            <div>
-              <div class="card-title">🛣️ ช่องทางการขาย</div>
-              <div class="card-subtitle">สัดส่วนยอดขาย</div>
-            </div>
-          </div>
-          <div class="legend" id="channel-legend"></div>
-          <div class="chart-box" style="height:180px"><canvas id="channelChart"></canvas></div>
-        </div>
-        <div class="card" style="cursor:pointer" onclick="navigate('projects',document.querySelector('[onclick*=\'projects\']'))">
-          <div class="card-header">
-            <div class="card-title">📋 โครงการล่าสุด</div>
-            <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="event.stopPropagation();navigate('projects',document.querySelector('[onclick*=\'projects\']'))">ดูทั้งหมด</button>
-          </div>
-          <div id="dash-projects-preview" style="display:flex;flex-direction:column;gap:7px;"></div>
-        </div>
+        <div id="dash-projects-preview" style="display:flex;flex-direction:column;gap:7px;"></div>
       </div>
 
     </div>
@@ -1353,7 +1382,7 @@
           <input type="text" id="search-activities" placeholder="ค้นหาประเภท, แปลง, ผู้ดำเนินการ..." oninput="onSearch('activities')">
           <button class="clear-btn" id="search-activities-clear" onclick="clearSearch('activities')">×</button>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap desktop-table">
           <table>
             <thead>
               <tr><th style="width:36px"><input type="checkbox" id="chk-all-activities" onchange="toggleCheckAll('activities',this.checked)"></th><th>วันที่</th><th>ประเภทกิจกรรม</th><th>แปลง</th><th>ผู้ดำเนินการ</th><th>วัสดุที่ใช้</th><th>หมายเหตุ</th><th style="width:90px">จัดการ</th></tr>
@@ -1361,6 +1390,7 @@
             <tbody id="activity-table-body"></tbody>
           </table>
         </div>
+        <div class="mobile-cards" id="activity-mobile-cards"></div>
         <div id="pg-activities" class="pagination"></div>
         <div id="action-bar-activities" class="sel-action-bar" style="display:none">
           <span id="sel-count-activities" class="sel-count"></span>
@@ -1639,7 +1669,7 @@
           <input type="text" id="search-sales" placeholder="ค้นหาสินค้า, ลูกค้า, ช่องทาง..." oninput="onSearch('sales')">
           <button class="clear-btn" id="search-sales-clear" onclick="clearSearch('sales')">×</button>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap desktop-table">
           <table>
             <thead>
               <tr><th style="width:36px"><input type="checkbox" id="chk-all-sales" onchange="toggleCheckAll('sales',this.checked)"></th><th>วันที่</th><th>สินค้า</th><th>ลูกค้า</th><th>ช่องทาง</th><th>น้ำหนัก (กก.)</th><th>ราคา/กก.</th><th>รวม (฿)</th><th>ชำระ</th><th style="width:90px">จัดการ</th></tr>
@@ -1647,6 +1677,7 @@
             <tbody id="sales-table-body"></tbody>
           </table>
         </div>
+        <div class="mobile-cards" id="sales-mobile-cards"></div>
         <div id="pg-sales" class="pagination"></div>
         <div id="action-bar-sales" class="sel-action-bar" style="display:none">
           <span id="sel-count-sales" class="sel-count"></span>
@@ -1671,7 +1702,7 @@
           <input type="text" id="search-customers" placeholder="ค้นหาชื่อลูกค้า, ประเภท, สินค้า..." oninput="onSearch('customers')">
           <button class="clear-btn" id="search-customers-clear" onclick="clearSearch('customers')">×</button>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap desktop-table">
           <table>
             <thead>
               <tr><th style="width:36px"><input type="checkbox" id="chk-all-customers" onchange="toggleCheckAll('customers',this.checked)"></th><th>ชื่อ/ร้าน</th><th>ประเภท</th><th>ติดต่อ</th><th>สินค้าที่สั่งประจำ</th><th>ยอดซื้อรวม</th><th>สั่งล่าสุด</th><th style="width:90px">จัดการ</th></tr>
@@ -1679,6 +1710,7 @@
             <tbody id="cust-table-body"></tbody>
           </table>
         </div>
+        <div class="mobile-cards" id="cust-mobile-cards"></div>
         <div id="pg-customers" class="pagination"></div>
         <div id="action-bar-customers" class="sel-action-bar" style="display:none">
           <span id="sel-count-customers" class="sel-count"></span>
@@ -2155,6 +2187,8 @@
           <option value="กำลังโต">กำลังโต</option>
           <option value="พร้อมเก็บ">พร้อมเก็บ</option>
           <option value="เก็บเกี่ยวแล้ว">เก็บเกี่ยวแล้ว</option>
+          <option value="เสียหาย/ตาย">เสียหาย/ตาย</option>
+          <option value="เก็บเกี่ยวแล้ว">เก็บเกี่ยวแล้ว</option>
         </select>
       </div>
       <div class="form-group">
@@ -2409,6 +2443,45 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-confirm-del')">ยกเลิก</button>
       <button class="btn" style="background:var(--red-400);color:#fff;border:none;" id="confirm-del-btn">ลบ</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB — context-aware quick add (mobile) -->
+<button class="fab" id="fab-btn" onclick="fabAction()" title="เพิ่มข้อมูล">＋</button>
+
+<!-- CUSTOMER HISTORY MODAL -->
+<div class="modal-overlay" id="modal-cust-history">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">🧾 ประวัติการซื้อ</div>
+      <button class="modal-close" onclick="closeModal('modal-cust-history')">✕</button>
+    </div>
+    <div style="padding:0 4px 4px;">
+      <div id="cust-hist-name" style="font-size:14px;font-weight:600;color:var(--green-700);margin-bottom:12px;"></div>
+      <div id="cust-hist-stats" class="quick-row" style="margin-bottom:12px;"></div>
+      <div id="cust-hist-timeline" style="max-height:380px;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-cust-history')">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLOT ACTIVITIES MODAL -->
+<div class="modal-overlay" id="modal-plot-acts">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <div class="modal-title">📋 กิจกรรมในแปลง</div>
+      <button class="modal-close" onclick="closeModal('modal-plot-acts')">✕</button>
+    </div>
+    <div style="padding:0 4px 4px;">
+      <div id="plot-acts-name" style="font-size:14px;font-weight:600;color:var(--green-700);margin-bottom:12px;"></div>
+      <div id="plot-acts-list" style="max-height:420px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+      <div id="plot-acts-empty" style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px;display:none;">ยังไม่มีกิจกรรมสำหรับแปลงนี้</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-plot-acts')">ปิด</button>
     </div>
   </div>
 </div>
@@ -2829,6 +2902,10 @@
       projects:'จัดการโครงการ', calendar:'ปฏิทินกิจกรรม', settings:'ตั้งค่า'
     };
     document.getElementById('page-title').textContent = titles[page] || '';
+    // ── FAB context ──
+    _currentPage = page;
+    const fab = document.getElementById('fab-btn');
+    if (fab) fab.style.display = page === 'settings' ? 'none' : '';
     closeSidebar();
     setBottomNav(page);
     if (page === 'dashboard') { renderDashboard(); setTimeout(() => { initDashboardChart(); buildReportCharts(); chartsInit = true; }, 150); }
@@ -3208,16 +3285,28 @@
   };
 
   let cropItems = [
-    { id:1, name:'ผักคะน้า',  cropType:'พืชผัก',      plot:'A1–A3', planted:'2025-02-01', harvest:'5 เม.ย. 68',   harvestDate:'2025-04-05', area:2.0, status:'พร้อมเก็บ',    yieldEst:480, yieldActual:'', harvestLog:[] },
-    { id:2, name:'มะเขือเทศ', cropType:'พืชสวนครัว',  plot:'B1–B2', planted:'2025-02-15', harvest:'20 เม.ย. 68',  harvestDate:'2025-04-20', area:1.5, status:'กำลังโต',      yieldEst:360, yieldActual:'', harvestLog:[] },
-    { id:3, name:'ข้าวโพด',   cropType:'พืชไร่',       plot:'C1–C4', planted:'2025-03-01', harvest:'10 มิ.ย. 68',  harvestDate:'2025-06-10', area:3.0, status:'เติบโต',       yieldEst:900, yieldActual:'', harvestLog:[] },
-    { id:4, name:'พริกขี้หนู', cropType:'พืชสวนครัว', plot:'D1',   planted:'2025-02-10', harvest:'30 เม.ย. 68',  harvestDate:'2025-04-30', area:0.5, status:'กำลังโต',      yieldEst:120, yieldActual:'', harvestLog:[] },
-    { id:5, name:'กระเทียม',  cropType:'พืชสวนครัว',  plot:'D2–D3', planted:'2025-03-01', harvest:'15 ก.ค. 68',   harvestDate:'2025-07-15', area:1.0, status:'เติบโต',       yieldEst:280, yieldActual:'', harvestLog:[] },
-    { id:6, name:'ผักบุ้ง',   cropType:'พืชผัก',       plot:'E1',    planted:'2025-03-20', harvest:'15 เม.ย. 68',  harvestDate:'2025-04-15', area:0.5, status:'พร้อมเก็บ',    yieldEst:150, yieldActual:'', harvestLog:[] },
-    { id:7, name:'ฟักทอง',    cropType:'ไม้ผล',        plot:'F1–F2', planted:'2025-03-05', harvest:'20 มิ.ย. 68',  harvestDate:'2025-06-20', area:2.0, status:'เติบโต',       yieldEst:600, yieldActual:'', harvestLog:[] },
-    { id:8, name:'ตะไคร้',    cropType:'สมุนไพร',      plot:'G1',    planted:'2025-01-01', harvest:'ต่อเนื่อง',   harvestDate:'',           area:0.5, status:'พร้อมเก็บ',    yieldEst:200, yieldActual:'', harvestLog:[] },
+    { id:1,  name:'ผักคะน้าใบใหญ่',     cropType:'พืชผัก',      plot:'A1–A3', planted:'2026-03-01', harvest:'1 พ.ค. 69',   harvestDate:'2026-05-01', area:2.0, status:'พร้อมเก็บ',   yieldEst:480, yieldActual:'', harvestLog:[] },
+    { id:2,  name:'มะเขือเทศราชินี',     cropType:'พืชสวนครัว',  plot:'B1–B2', planted:'2026-02-15', harvest:'20 พ.ค. 69',  harvestDate:'2026-05-20', area:1.5, status:'กำลังโต',     yieldEst:360, yieldActual:'', harvestLog:[] },
+    { id:3,  name:'ข้าวโพดหวาน',         cropType:'พืชไร่',       plot:'C1–C4', planted:'2026-03-15', harvest:'15 มิ.ย. 69', harvestDate:'2026-06-15', area:3.0, status:'เติบโต',      yieldEst:900, yieldActual:'', harvestLog:[] },
+    { id:4,  name:'พริกแดงใหญ่',         cropType:'พืชสวนครัว',  plot:'D1',    planted:'2026-01-20', harvest:'10 เม.ย. 69', harvestDate:'2026-04-10', area:0.5, status:'เก็บเกี่ยวแล้ว', yieldEst:130, yieldActual:118, harvestLog:[{date:'2026-04-08',weight:68,note:'รอบแรก'},{date:'2026-04-11',weight:50,note:'รอบสอง'}] },
+    { id:5,  name:'กระเทียมโทน',         cropType:'พืชสวนครัว',  plot:'D2–D3', planted:'2026-01-15', harvest:'30 มิ.ย. 69', harvestDate:'2026-06-30', area:1.0, status:'กำลังโต',     yieldEst:280, yieldActual:'', harvestLog:[] },
+    { id:6,  name:'ผักบุ้งจีน',           cropType:'พืชผัก',      plot:'E1',    planted:'2026-04-10', harvest:'10 พ.ค. 69',  harvestDate:'2026-05-10', area:0.5, status:'พร้อมเก็บ',   yieldEst:160, yieldActual:'', harvestLog:[] },
+    { id:7,  name:'ฟักทองไทย',            cropType:'ไม้ผล',       plot:'F1–F2', planted:'2026-03-01', harvest:'25 มิ.ย. 69', harvestDate:'2026-06-25', area:2.0, status:'เติบโต',      yieldEst:600, yieldActual:'', harvestLog:[] },
+    { id:8,  name:'ตะไคร้หอม',            cropType:'สมุนไพร',     plot:'G1',    planted:'2025-10-01', harvest:'ต่อเนื่อง',   harvestDate:'',           area:0.5, status:'พร้อมเก็บ',   yieldEst:200, yieldActual:340, harvestLog:[{date:'2026-02-15',weight:90,note:'ตัดรอบที่ 3'},{date:'2026-03-20',weight:110,note:'รอบ 4'},{date:'2026-04-22',weight:140,note:'รอบ 5'}] },
+    { id:9,  name:'ผักชีไทย',             cropType:'พืชผัก',      plot:'A4',    planted:'2026-04-05', harvest:'20 พ.ค. 69',  harvestDate:'2026-05-20', area:0.3, status:'เติบโต',      yieldEst:45,  yieldActual:'', harvestLog:[] },
+    { id:10, name:'ขิงอ่อน',              cropType:'สมุนไพร',     plot:'G2',    planted:'2026-02-01', harvest:'1 ส.ค. 69',   harvestDate:'2026-08-01', area:0.8, status:'กำลังโต',     yieldEst:240, yieldActual:'', harvestLog:[] },
+    { id:11, name:'ใบมะกรูด',             cropType:'สมุนไพร',     plot:'H1',    planted:'2024-06-01', harvest:'ต่อเนื่อง',   harvestDate:'',           area:0.3, status:'พร้อมเก็บ',   yieldEst:30,  yieldActual:85,  harvestLog:[{date:'2026-01-10',weight:25,note:''},{date:'2026-03-05',weight:30,note:''},{date:'2026-05-01',weight:30,note:'ใบงาม'}] },
+    { id:12, name:'มะนาวแป้น',            cropType:'ไม้ผล',       plot:'H2–H3', planted:'2024-01-01', harvest:'ต่อเนื่อง',   harvestDate:'',           area:1.0, status:'พร้อมเก็บ',   yieldEst:400, yieldActual:520, harvestLog:[{date:'2026-02-20',weight:180,note:'ผลดก'},{date:'2026-04-15',weight:200,note:''},{date:'2026-05-05',weight:140,note:''}] },
+    { id:13, name:'ผักกาดขาวปลี',         cropType:'พืชผัก',      plot:'A5–A6', planted:'2026-03-20', harvest:'20 พ.ค. 69',  harvestDate:'2026-05-20', area:1.2, status:'กำลังโต',     yieldEst:320, yieldActual:'', harvestLog:[] },
+    { id:14, name:'หอมแดงพม่า',           cropType:'พืชสวนครัว',  plot:'D4',    planted:'2026-01-25', harvest:'30 เม.ย. 69', harvestDate:'2026-04-30', area:0.8, status:'เก็บเกี่ยวแล้ว', yieldEst:200, yieldActual:186, harvestLog:[{date:'2026-04-28',weight:186,note:'งามดีมาก'}] },
+    { id:15, name:'กระชายเหลือง',         cropType:'สมุนไพร',     plot:'G3',    planted:'2026-01-15', harvest:'15 ก.ค. 69',  harvestDate:'2026-07-15', area:0.6, status:'กำลังโต',     yieldEst:180, yieldActual:'', harvestLog:[] },
+    { id:16, name:'ผักเคล (Kale)',        cropType:'พืชผัก',      plot:'B3',    planted:'2026-03-10', harvest:'12 พ.ค. 69',  harvestDate:'2026-05-12', area:0.8, status:'พร้อมเก็บ',   yieldEst:150, yieldActual:'', harvestLog:[] },
+    { id:17, name:'พริกหวานหลากสี',       cropType:'พืชสวนครัว',  plot:'D5',    planted:'2026-03-01', harvest:'10 มิ.ย. 69', harvestDate:'2026-06-10', area:0.5, status:'เติบโต',      yieldEst:120, yieldActual:'', harvestLog:[] },
+    { id:18, name:'ดาวเรืองส้ม',          cropType:'ไม้ดอก',      plot:'I1',    planted:'2026-03-25', harvest:'25 พ.ค. 69',  harvestDate:'2026-05-25', area:0.4, status:'เติบโต',      yieldEst:80,  yieldActual:'', harvestLog:[] },
+    { id:19, name:'ไพล',                  cropType:'สมุนไพร',     plot:'G4',    planted:'2025-08-01', harvest:'ต่อเนื่อง',   harvestDate:'',           area:0.4, status:'กำลังโต',     yieldEst:120, yieldActual:60,  harvestLog:[{date:'2026-03-01',weight:60,note:'เก็บรอบแรก'}] },
+    { id:20, name:'มะระจีน',              cropType:'พืชสวนครัว',  plot:'E2',    planted:'2026-03-20', harvest:'5 มิ.ย. 69',  harvestDate:'2026-06-05', area:0.6, status:'เติบโต',      yieldEst:170, yieldActual:'', harvestLog:[] },
   ];
-  let nextCropId = 9;
+  let nextCropId = 21;
   let editingCropId = null;
   let cropRendered = false;
 
@@ -3357,14 +3446,44 @@
   }
   // ============================================================
   let actItems = [
-    { id:1, date:'2025-04-04', type:'รดน้ำ',         plot:'A1–A3',   person:'สมชาย', material:'น้ำ 200 ลิตร',  note:'—' },
-    { id:2, date:'2025-04-03', type:'ตรวจโรคพืช',    plot:'B1–B2',   person:'มาลี',  material:'—',              note:'พบเพลี้ยเล็กน้อย ใช้น้ำส้มควันไม้' },
-    { id:3, date:'2025-04-02', type:'ใส่ปุ๋ยหมัก',   plot:'C1–C4',   person:'สมชาย', material:'ปุ๋ยหมัก 50 กก.', note:'—' },
-    { id:4, date:'2025-04-01', type:'เก็บเกี่ยว',    plot:'E1',      person:'มาลี, สมใจ', material:'—',         note:'ผักบุ้ง 80 กก. ส่งตลาดเช้า' },
-    { id:5, date:'2025-03-30', type:'พรวนดิน / ไถดิน', plot:'D2–D3', person:'สมชาย', material:'—',             note:'เตรียมดินสำหรับปลูกรุ่นถัดไป' },
-    { id:6, date:'2025-03-29', type:'รดน้ำ',         plot:'ทุกแปลง', person:'สมใจ',  material:'น้ำ 500 ลิตร',  note:'—' },
+    { id:1,  date:'2026-05-07', type:'รดน้ำ',              plot:'A1–A3',   person:'สมชาย',       material:'น้ำ 300 ลิตร',        note:'รดช่วงเช้า ก่อน 7 โมง' },
+    { id:2,  date:'2026-05-07', type:'ตรวจโรคพืช',         plot:'B1–B2',   person:'มาลี',         material:'—',                    note:'พบเพลี้ยขาวเล็กน้อย บันทึกไว้ติดตาม' },
+    { id:3,  date:'2026-05-06', type:'ใส่ปุ๋ยหมัก',        plot:'C1–C4',   person:'สมชาย',       material:'ปุ๋ยหมัก 80 กก.',       note:'ใส่รอบเดือน ก่อนฝนมา' },
+    { id:4,  date:'2026-05-06', type:'พ่นน้ำส้มควันไม้',   plot:'B1–B2',   person:'มาลี',         material:'น้ำส้มควันไม้ 2 ลิตร', note:'ป้องกันเพลี้ยขาวที่ตรวจพบ' },
+    { id:5,  date:'2026-05-05', type:'เก็บเกี่ยว',         plot:'H2–H3',   person:'มาลี, สมใจ',  material:'—',                    note:'มะนาวแป้น 140 กก. ส่งร้านอาหาร', fromCrop:true },
+    { id:6,  date:'2026-05-05', type:'รดน้ำ',              plot:'ทุกแปลง', person:'สมใจ',         material:'น้ำ 800 ลิตร',         note:'ระบบสปริงเกลอร์' },
+    { id:7,  date:'2026-05-04', type:'ตัดแต่งกิ่ง',        plot:'H1',      person:'สมชาย',       material:'กรรไกร, ถุงมือ',       note:'ตัดใบเก่ามะกรูดออก เพื่อกระตุ้นใบอ่อน' },
+    { id:8,  date:'2026-05-03', type:'ตรวจวัดค่า pH ดิน',  plot:'A1–A3',   person:'มาลี',         material:'ชุดทดสอบ pH',           note:'ค่า pH 6.2 อยู่ในเกณฑ์ดี' },
+    { id:9,  date:'2026-05-02', type:'พรวนดิน / ไถดิน',    plot:'A5–A6',   person:'สมชาย',       material:'จอบ, พรวนดิน',         note:'เตรียมดินก่อนหยอดเมล็ดรุ่นต่อไป' },
+    { id:10, date:'2026-05-01', type:'เก็บเกี่ยว',         plot:'H1',      person:'มาลี',         material:'—',                    note:'ใบมะกรูด 30 กก. ส่งโรงแรม', fromCrop:true },
+    { id:11, date:'2026-04-30', type:'เก็บเกี่ยว',         plot:'D4',      person:'สมชาย, สมใจ', material:'—',                    note:'หอมแดงพม่า 186 กก. เข้าคลัง', fromCrop:true },
+    { id:12, date:'2026-04-28', type:'ใส่ปุ๋ยน้ำหมักชีวภาพ',plot:'D2–D3', person:'มาลี',         material:'น้ำหมักฯ 20 ลิตร',    note:'หมักจากเศษผัก 30 วัน' },
+    { id:13, date:'2026-04-27', type:'ซ่อมระบบน้ำหยด',     plot:'B1–B2',   person:'สมชาย',       material:'ท่อน้ำหยด, ข้อต่อ',   note:'ท่อรั่ว 3 จุด ซ่อมเรียบร้อย' },
+    { id:14, date:'2026-04-25', type:'กำจัดวัชพืช',        plot:'C1–C4',   person:'สมใจ, มาลี',  material:'—',                    note:'ถอนหญ้ารอบโคนข้าวโพด' },
+    { id:15, date:'2026-04-24', type:'ติดตั้งตาข่ายกันแมลง',plot:'B3',    person:'สมชาย',       material:'ตาข่ายไนลอน 20 ม.',   note:'ป้องกันหนอนใยผักในแปลงเคล' },
+    { id:16, date:'2026-04-22', type:'เก็บเกี่ยว',         plot:'G1',      person:'มาลี, สมใจ',  material:'—',                    note:'ตะไคร้ 140 กก. รอบที่ 5', fromCrop:true },
+    { id:17, date:'2026-04-20', type:'หว่านเมล็ด',         plot:'E1',      person:'สมชาย',       material:'เมล็ดผักบุ้ง 200 กรัม',note:'หยอดระยะห่าง 15 ซม.' },
+    { id:18, date:'2026-04-18', type:'ตรวจโรคพืช',         plot:'C1–C4',   person:'มาลี',         material:'—',                    note:'ไม่พบโรค ข้าวโพดเติบโตดี' },
+    { id:19, date:'2026-04-15', type:'เก็บเกี่ยว',         plot:'H2–H3',   person:'มาลี, สมใจ',  material:'—',                    note:'มะนาว 200 กก.', fromCrop:true },
+    { id:20, date:'2026-04-13', type:'ใส่ปุ๋ยหมัก',        plot:'F1–F2',   person:'สมชาย',       material:'ปุ๋ยหมัก 60 กก.',       note:'ฟักทองเติบโตดี ใส่เสริม' },
+    { id:21, date:'2026-04-11', type:'เก็บเกี่ยว',         plot:'D1',      person:'สมชาย, มาลี', material:'—',                    note:'พริกแดงรอบที่ 2 ได้ 50 กก.', fromCrop:true },
+    { id:22, date:'2026-04-10', type:'ค้ำยัน / มัดต้น',    plot:'B1–B2',   person:'สมใจ',         material:'ไม้ค้ำ 30 ชิ้น',       note:'มะเขือเทศเริ่มออกผล ต้องค้ำยัน' },
+    { id:23, date:'2026-04-08', type:'เก็บเกี่ยว',         plot:'D1',      person:'สมชาย',       material:'—',                    note:'พริกแดงรอบแรก 68 กก.', fromCrop:true },
+    { id:24, date:'2026-04-05', type:'ปลูกต้นกล้า',        plot:'B3',      person:'มาลี',         material:'ต้นกล้าเคล 80 ต้น',   note:'ย้ายกล้าจากเรือนเพาะชำ' },
+    { id:25, date:'2026-04-03', type:'ใส่ปุ๋ยน้ำหมักชีวภาพ',plot:'A1–A3', person:'สมชาย',       material:'น้ำหมักฯ 15 ลิตร',    note:'ผักคะน้าใส่ปุ๋ยก่อนเก็บ 1 เดือน' },
+    { id:26, date:'2026-04-01', type:'ตรวจวัดค่า pH ดิน',  plot:'D2–D3',   person:'มาลี',         material:'ชุดทดสอบ pH',           note:'pH 5.8 ต่ำเล็กน้อย ปรับด้วยปูนขาว' },
+    { id:27, date:'2026-03-28', type:'ฉีดพ่นน้ำ',          plot:'G1',      person:'สมใจ',         material:'น้ำ 100 ลิตร',         note:'ตะไคร้ต้องการความชื้น' },
+    { id:28, date:'2026-03-25', type:'กำจัดวัชพืช',        plot:'D4',      person:'มาลี',         material:'—',                    note:'ถอนหญ้ารอบหอมแดงทั้งแปลง' },
+    { id:29, date:'2026-03-20', type:'เก็บเกี่ยว',         plot:'G1',      person:'มาลี, สมใจ',  material:'—',                    note:'ตะไคร้รอบที่ 4 ได้ 110 กก.', fromCrop:true },
+    { id:30, date:'2026-03-15', type:'ซ่อมโครงสร้างโรงเรือน',plot:'เรือนเพาะชำ',person:'สมชาย','material':'ไม้ กระเบื้อง',     note:'หลังคารั่วจากพายุ ซ่อมเสร็จแล้ว' },
+    { id:31, date:'2026-03-10', type:'หว่านเมล็ด',         plot:'A4',      person:'มาลี',         material:'เมล็ดผักชี 50 กรัม',  note:'หว่านหนาแน่น เก็บเป็นรุ่น' },
+    { id:32, date:'2026-03-05', type:'เก็บเกี่ยว',         plot:'H1',      person:'มาลี',         material:'—',                    note:'ใบมะกรูด 30 กก.', fromCrop:true },
+    { id:33, date:'2026-03-01', type:'ปลูกต้นกล้า',        plot:'D5',      person:'สมชาย',       material:'ต้นกล้าพริกหวาน 60 ต้น',note:'พริกหวานหลากสีเพื่อโรงแรม' },
+    { id:34, date:'2026-02-28', type:'บันทึกข้อมูลแปลง',   plot:'ทุกแปลง', person:'มาลี',         material:'—',                    note:'อัปเดตแผนผังแปลงประจำเดือน' },
+    { id:35, date:'2026-02-20', type:'เก็บเกี่ยว',         plot:'H2–H3',   person:'สมชาย, สมใจ', material:'—',                    note:'มะนาวแป้น 180 กก. ผลดก', fromCrop:true },
+    { id:36, date:'2026-02-15', type:'เก็บเกี่ยว',         plot:'G1',      person:'มาลี',         material:'—',                    note:'ตะไคร้รอบที่ 3 ได้ 90 กก.', fromCrop:true },
   ];
-  let nextActId = 7;
+  let nextActId = 37;
   let editingActId = null;
   let actRendered = false;
   let actFilteredItems = null;
@@ -3564,13 +3683,16 @@
     'อื่นๆ':         'badge-gray',
   };
   let custItems = [
-    { id:1, name:'ตลาดสดเช้าลำปาง',    type:'ตลาด',      contact:'081-234-5678',  products:'ผักคะน้า, ผักบุ้ง',          total:42000, lastOrder:'2025-04-04' },
-    { id:2, name:'ร้านอาหารครัวไทย',    type:'ร้านอาหาร', contact:'089-876-5432',  products:'มะเขือเทศ, พริก',             total:28500, lastOrder:'2025-04-04' },
-    { id:3, name:'คุณนุ่น (ลูกค้าประจำ)', type:'บุคคล',   contact:'062-111-2233',  products:'ตะไคร้, กระเทียม',            total:8400,  lastOrder:'2025-04-01' },
-    { id:4, name:'ออนไลน์ Facebook',     type:'ออนไลน์',  contact:'@FarmSeeKhiao', products:'ผักคะน้า, มะเขือเทศ',         total:15200, lastOrder:'2025-04-02' },
-    { id:5, name:'โรงแรมเวียงลคอร',      type:'โรงแรม',   contact:'054-123-456',   products:'ผักอินทรีย์รวม',              total:18600, lastOrder:'2025-03-28' },
+    { id:1, name:'ตลาดสดเช้าลำปาง',        type:'ตลาด',      contact:'081-234-5678',   products:'ผักคะน้า, ผักบุ้ง, ผักกาด',   total:84200,  lastOrder:'2026-05-05' },
+    { id:2, name:'ร้านอาหารครัวไทย',        type:'ร้านอาหาร', contact:'089-876-5432',   products:'มะเขือเทศ, พริก, มะนาว',       total:52800,  lastOrder:'2026-05-05' },
+    { id:3, name:'คุณนุ่น (ลูกค้าประจำ)',   type:'บุคคล',     contact:'062-111-2233',   products:'ตะไคร้, กระเทียม, สมุนไพร',    total:18600,  lastOrder:'2026-05-04' },
+    { id:4, name:'ออนไลน์ Facebook',         type:'ออนไลน์',   contact:'@FarmSeeKhiao',  products:'ผักออร์แกนิครวม, เคล',         total:29400,  lastOrder:'2026-05-03' },
+    { id:5, name:'โรงแรมเวียงลคอร',          type:'โรงแรม',    contact:'054-123-456',    products:'ผักอินทรีย์รวม, ใบมะกรูด',     total:46500,  lastOrder:'2026-05-01' },
+    { id:6, name:'Tops Supermarket ลำปาง', type:'ซูเปอร์มาร์เก็ต',contact:'054-789-012',products:'ผักเคล, มะเขือเทศราชินี',     total:31200,  lastOrder:'2026-04-28' },
+    { id:7, name:'คลินิกสุขภาพธรรมชาติ',   type:'ธุรกิจ',    contact:'092-345-6789',   products:'สมุนไพร, ขิง, กระชาย, ไพล',   total:14800,  lastOrder:'2026-04-20' },
+    { id:8, name:'ร้านก๋วยเตี๋ยวเจ้าเก่า',  type:'ร้านอาหาร', contact:'086-555-4321',   products:'ผักบุ้ง, หอมแดง, ตะไคร้',      total:22100,  lastOrder:'2026-04-25' },
   ];
-  let nextCustId = 6;
+  let nextCustId = 9;
   let editingCustId = null;
   let custRendered = false;
 
@@ -3645,15 +3767,29 @@
   // ===== INVENTORY (existing, updated to use shared del) =====
   // ============================================================
   let invItems = [
-    { id:1, name:'ปุ๋ยหมักอินทรีย์',    cat:'ปุ๋ย',               qty:15,  unit:'กก.',   price:25,  threshold:20,  lastOrder:'1 มี.ค. 68' },
-    { id:2, name:'น้ำส้มควันไม้',       cat:'สารกำจัดศัตรูพืช',  qty:8,   unit:'ลิตร',  price:120, threshold:10,  lastOrder:'15 มี.ค. 68' },
-    { id:3, name:'เมล็ดพันธุ์ผักคะน้า', cat:'เมล็ดพันธุ์',       qty:500, unit:'กรัม',  price:80,  threshold:100, lastOrder:'20 ก.พ. 68' },
-    { id:4, name:'เมล็ดมะเขือเทศ',      cat:'เมล็ดพันธุ์',       qty:300, unit:'กรัม',  price:150, threshold:100, lastOrder:'20 ก.พ. 68' },
-    { id:5, name:'ท่อน้ำหยด',           cat:'อุปกรณ์ชลประทาน',  qty:200, unit:'เมตร',  price:15,  threshold:50,  lastOrder:'1 ก.พ. 68' },
-    { id:6, name:'ถุงบรรจุผัก',         cat:'บรรจุภัณฑ์',        qty:0,   unit:'ใบ',    price:2,   threshold:100, lastOrder:'15 ก.พ. 68' },
-    { id:7, name:'ไม้ค้ำยัน',           cat:'อุปกรณ์',           qty:120, unit:'ชิ้น',  price:8,   threshold:30,  lastOrder:'1 ม.ค. 68' },
+    { id:1,  name:'ปุ๋ยหมักอินทรีย์',       cat:'ปุ๋ย',                qty:12,   unit:'กก.',   price:25,   threshold:20,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-04-01' },
+    { id:2,  name:'น้ำส้มควันไม้',           cat:'สารกำจัดศัตรูพืช',   qty:6,    unit:'ลิตร',  price:120,  threshold:10,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-03-15' },
+    { id:3,  name:'เมล็ดพันธุ์ผักคะน้า',    cat:'เมล็ดพันธุ์',         qty:300,  unit:'กรัม',  price:80,   threshold:100, shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-02-20' },
+    { id:4,  name:'เมล็ดมะเขือเทศราชินี',   cat:'เมล็ดพันธุ์',         qty:150,  unit:'กรัม',  price:220,  threshold:100, shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-02-20' },
+    { id:5,  name:'ท่อน้ำหยด PE',           cat:'อุปกรณ์ชลประทาน',    qty:320,  unit:'เมตร',  price:18,   threshold:50,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-02-01' },
+    { id:6,  name:'ถุงบรรจุผัก 500g',       cat:'บรรจุภัณฑ์',          qty:0,    unit:'ใบ',    price:2,    threshold:200, shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-03-01' },
+    { id:7,  name:'ไม้ค้ำยันมะเขือ',        cat:'อุปกรณ์',             qty:150,  unit:'ชิ้น',  price:8,    threshold:30,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-01-15' },
+    { id:8,  name:'น้ำหมักชีวภาพ EM',       cat:'ปุ๋ย',                qty:40,   unit:'ลิตร',  price:60,   threshold:20,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-04-10' },
+    { id:9,  name:'ตาข่ายกันแมลง',          cat:'อุปกรณ์',             qty:60,   unit:'ตร.ม.', price:45,   threshold:10,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-04-24' },
+    { id:10, name:'เมล็ดพันธุ์ผักบุ้ง',     cat:'เมล็ดพันธุ์',         qty:800,  unit:'กรัม',  price:35,   threshold:200, shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-03-10' },
+    { id:11, name:'ปูนขาวปรับ pH',          cat:'ปุ๋ย',                qty:8,    unit:'กก.',   price:15,   threshold:5,   shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-04-05' },
+    { id:12, name:'สายยางรด 2 นิ้ว',        cat:'อุปกรณ์ชลประทาน',    qty:3,    unit:'ม้วน',  price:350,  threshold:2,   shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-01-10' },
+    { id:13, name:'กล่องกระดาษบรรจุผัก',    cat:'บรรจุภัณฑ์',          qty:85,   unit:'ใบ',    price:12,   threshold:50,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-04-15' },
+    { id:14, name:'ถุงมือยาง',              cat:'อุปกรณ์',             qty:24,   unit:'คู่',   price:25,   threshold:10,  shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-03-20' },
+    { id:15, name:'สเปรย์สะเดา',           cat:'สารกำจัดศัตรูพืช',   qty:4,    unit:'ลิตร',  price:180,  threshold:6,   shelfLife:null, harvestDate:'',           lot:'',       lastOrder:'2026-04-01' },
+    // ผลผลิต
+    { id:16, name:'ตะไคร้หอม',             cat:'ผลผลิต', qty:90,  unit:'กก.', price:30,  threshold:0, shelfLife:10, harvestDate:'2026-05-04', lot:'Crop 6', lastOrder:'2026-05-04' },
+    { id:17, name:'มะนาวแป้น',             cat:'ผลผลิต', qty:140, unit:'กก.', price:35,  threshold:0, shelfLife:14, harvestDate:'2026-05-05', lot:'Crop 4', lastOrder:'2026-05-05' },
+    { id:18, name:'ใบมะกรูด',              cat:'ผลผลิต', qty:30,  unit:'กก.', price:120, threshold:0, shelfLife:7,  harvestDate:'2026-05-01', lot:'Crop 3', lastOrder:'2026-05-01' },
+    { id:19, name:'หอมแดงพม่า',            cat:'ผลผลิต', qty:186, unit:'กก.', price:55,  threshold:0, shelfLife:30, harvestDate:'2026-04-30', lot:'Crop 1', lastOrder:'2026-04-30' },
+    { id:20, name:'พริกแดงใหญ่',           cat:'ผลผลิต', qty:35,  unit:'กก.', price:100, threshold:0, shelfLife:7,  harvestDate:'2026-04-11', lot:'Crop 2', lastOrder:'2026-04-11' },
   ];
-  let nextInvId = 8;
+  let nextInvId = 21;
   let editingInvId = null;
   let invRendered = false;
 
@@ -4131,14 +4267,47 @@
   // ============================================================
   // ===== SALES DATA =====
   // ============================================================
-  let _nextSaleId = 10;
+  let _nextSaleId = 40;
   let salesData = [
-    { _id:1, date:'2025-04-04', product:'ผักคะน้า',   customer:'ตลาดสดเช้า',            channel:'ตลาด',    weight:45, price:35,  total:1575, payment:'เงินสด' },
-    { _id:2, date:'2025-04-04', product:'มะเขือเทศ',  customer:'ร้านอาหารครัวไทย',      channel:'ส่งตรง',  weight:20, price:60,  total:1200, payment:'โอน' },
-    { _id:3, date:'2025-04-03', product:'ผักบุ้ง',    customer:'ตลาดสดเช้า',            channel:'ตลาด',    weight:30, price:25,  total:750,  payment:'เงินสด' },
-    { _id:4, date:'2025-04-03', product:'พริกขี้หนู', customer:'ร้านอาหารครัวไทย',      channel:'ส่งตรง',  weight:10, price:120, total:1200, payment:'โอน' },
-    { _id:5, date:'2025-04-02', product:'ผักคะน้า',   customer:'ออนไลน์ Facebook',       channel:'ออนไลน์', weight:15, price:40,  total:600,  payment:'รอชำระ' },
-    { _id:6, date:'2025-04-01', product:'ตะไคร้',     customer:'ลูกค้าประจำ (คุณนุ่น)', channel:'ส่งตรง',  weight:25, price:30,  total:750,  payment:'โอน' },
+    { _id:1,  date:'2026-05-07', product:'ผักคะน้าใบใหญ่',   customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:50,  price:35,  total:1750,  payment:'เงินสด' },
+    { _id:2,  date:'2026-05-07', product:'ผักเคล (Kale)',     customer:'Tops Supermarket ลำปาง', channel:'ส่งตรง',      weight:20,  price:80,  total:1600,  payment:'โอน' },
+    { _id:3,  date:'2026-05-06', product:'ตะไคร้หอม',         customer:'ร้านอาหารครัวไทย',       channel:'ส่งตรง',      weight:30,  price:35,  total:1050,  payment:'โอน' },
+    { _id:4,  date:'2026-05-06', product:'ตะไคร้หอม',         customer:'คุณนุ่น (ลูกค้าประจำ)',  channel:'ส่งตรง',      weight:10,  price:38,  total:380,   payment:'เงินสด' },
+    { _id:5,  date:'2026-05-05', product:'มะนาวแป้น',         customer:'ร้านอาหารครัวไทย',       channel:'ส่งตรง',      weight:60,  price:35,  total:2100,  payment:'โอน' },
+    { _id:6,  date:'2026-05-05', product:'มะนาวแป้น',         customer:'ร้านก๋วยเตี๋ยวเจ้าเก่า', channel:'ส่งตรง',      weight:40,  price:32,  total:1280,  payment:'เงินสด' },
+    { _id:7,  date:'2026-05-04', product:'ตะไคร้หอม',         customer:'คลินิกสุขภาพธรรมชาติ',  channel:'ส่งตรง',      weight:15,  price:40,  total:600,   payment:'โอน' },
+    { _id:8,  date:'2026-05-03', product:'ผักคะน้าใบใหญ่',   customer:'ออนไลน์ Facebook',        channel:'ออนไลน์',     weight:25,  price:45,  total:1125,  payment:'โอน' },
+    { _id:9,  date:'2026-05-02', product:'ใบมะกรูด',          customer:'โรงแรมเวียงลคอร',         channel:'ส่งตรง',      weight:10,  price:120, total:1200,  payment:'โอน' },
+    { _id:10, date:'2026-05-01', product:'ใบมะกรูด',          customer:'คลินิกสุขภาพธรรมชาติ',  channel:'ส่งตรง',      weight:8,   price:120, total:960,   payment:'โอน' },
+    { _id:11, date:'2026-04-30', product:'หอมแดงพม่า',        customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:100, price:55,  total:5500,  payment:'เงินสด' },
+    { _id:12, date:'2026-04-28', product:'หอมแดงพม่า',        customer:'ร้านก๋วยเตี๋ยวเจ้าเก่า', channel:'ส่งตรง',      weight:50,  price:58,  total:2900,  payment:'เงินสด' },
+    { _id:13, date:'2026-04-28', product:'ผักเคล (Kale)',     customer:'Tops Supermarket ลำปาง', channel:'ส่งตรง',      weight:18,  price:80,  total:1440,  payment:'โอน' },
+    { _id:14, date:'2026-04-25', product:'มะนาวแป้น',         customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:80,  price:30,  total:2400,  payment:'เงินสด' },
+    { _id:15, date:'2026-04-25', product:'ตะไคร้หอม',         customer:'ร้านก๋วยเตี๋ยวเจ้าเก่า', channel:'ส่งตรง',      weight:20,  price:35,  total:700,   payment:'เงินสด' },
+    { _id:16, date:'2026-04-22', product:'ตะไคร้หอม',         customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:60,  price:30,  total:1800,  payment:'เงินสด' },
+    { _id:17, date:'2026-04-22', product:'ตะไคร้หอม',         customer:'โรงแรมเวียงลคอร',        channel:'ส่งตรง',      weight:20,  price:40,  total:800,   payment:'โอน' },
+    { _id:18, date:'2026-04-20', product:'ไพล',               customer:'คลินิกสุขภาพธรรมชาติ',  channel:'ส่งตรง',      weight:25,  price:80,  total:2000,  payment:'โอน' },
+    { _id:19, date:'2026-04-18', product:'ผักคะน้าใบใหญ่',   customer:'โรงแรมเวียงลคอร',        channel:'ส่งตรง',      weight:30,  price:40,  total:1200,  payment:'โอน' },
+    { _id:20, date:'2026-04-15', product:'มะนาวแป้น',         customer:'ร้านอาหารครัวไทย',       channel:'ส่งตรง',      weight:80,  price:35,  total:2800,  payment:'โอน' },
+    { _id:21, date:'2026-04-15', product:'มะนาวแป้น',         customer:'ออนไลน์ Facebook',        channel:'ออนไลน์',     weight:30,  price:42,  total:1260,  payment:'โอน' },
+    { _id:22, date:'2026-04-13', product:'ผักเคล (Kale)',     customer:'ออนไลน์ Facebook',        channel:'ออนไลน์',     weight:12,  price:85,  total:1020,  payment:'โอน' },
+    { _id:23, date:'2026-04-11', product:'พริกแดงใหญ่',       customer:'ร้านอาหารครัวไทย',       channel:'ส่งตรง',      weight:30,  price:100, total:3000,  payment:'โอน' },
+    { _id:24, date:'2026-04-11', product:'พริกแดงใหญ่',       customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:20,  price:95,  total:1900,  payment:'เงินสด' },
+    { _id:25, date:'2026-04-08', product:'พริกแดงใหญ่',       customer:'ร้านก๋วยเตี๋ยวเจ้าเก่า', channel:'ส่งตรง',      weight:20,  price:98,  total:1960,  payment:'เงินสด' },
+    { _id:26, date:'2026-04-05', product:'ใบมะกรูด',          customer:'โรงแรมเวียงลคอร',        channel:'ส่งตรง',      weight:12,  price:120, total:1440,  payment:'โอน' },
+    { _id:27, date:'2026-03-28', product:'ผักคะน้าใบใหญ่',   customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:60,  price:35,  total:2100,  payment:'เงินสด' },
+    { _id:28, date:'2026-03-25', product:'ตะไคร้หอม',         customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:55,  price:30,  total:1650,  payment:'เงินสด' },
+    { _id:29, date:'2026-03-20', product:'ตะไคร้หอม',         customer:'โรงแรมเวียงลคอร',        channel:'ส่งตรง',      weight:30,  price:38,  total:1140,  payment:'โอน' },
+    { _id:30, date:'2026-03-15', product:'มะนาวแป้น',         customer:'ร้านอาหารครัวไทย',       channel:'ส่งตรง',      weight:70,  price:32,  total:2240,  payment:'โอน' },
+    { _id:31, date:'2026-03-10', product:'ใบมะกรูด',          customer:'คลินิกสุขภาพธรรมชาติ',  channel:'ส่งตรง',      weight:10,  price:120, total:1200,  payment:'โอน' },
+    { _id:32, date:'2026-03-08', product:'ผักเคล (Kale)',     customer:'Tops Supermarket ลำปาง', channel:'ส่งตรง',      weight:20,  price:80,  total:1600,  payment:'โอน' },
+    { _id:33, date:'2026-03-05', product:'ใบมะกรูด',          customer:'โรงแรมเวียงลคอร',        channel:'ส่งตรง',      weight:18,  price:125, total:2250,  payment:'โอน' },
+    { _id:34, date:'2026-02-28', product:'ตะไคร้หอม',         customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:45,  price:28,  total:1260,  payment:'เงินสด' },
+    { _id:35, date:'2026-02-25', product:'มะนาวแป้น',         customer:'ร้านอาหารครัวไทย',       channel:'ส่งตรง',      weight:80,  price:30,  total:2400,  payment:'โอน' },
+    { _id:36, date:'2026-02-22', product:'ไพล',               customer:'คลินิกสุขภาพธรรมชาติ',  channel:'ส่งตรง',      weight:35,  price:75,  total:2625,  payment:'โอน' },
+    { _id:37, date:'2026-02-20', product:'มะนาวแป้น',         customer:'ตลาดสดเช้าลำปาง',       channel:'ตลาด',        weight:100, price:28,  total:2800,  payment:'เงินสด' },
+    { _id:38, date:'2026-02-15', product:'ตะไคร้หอม',         customer:'คุณนุ่น (ลูกค้าประจำ)',  channel:'ส่งตรง',      weight:40,  price:35,  total:1400,  payment:'เงินสด' },
+    { _id:39, date:'2026-02-10', product:'ผักคะน้าใบใหญ่',   customer:'ออนไลน์ Facebook',        channel:'ออนไลน์',     weight:20,  price:45,  total:900,   payment:'รอชำระ' },
   ];
 
   // ============================================================
@@ -4156,59 +4325,151 @@
   // ===== DASHBOARD CHART (real data) =====
   // ============================================================
   let revChart;
-  function initDashboardChart(){
-    const ctx=document.getElementById('revenueChart');
-    if(!ctx)return;
-    if(revChart){revChart.destroy();revChart=null;}
-    const byMonth=salesByMonth();
-    const labels=Object.keys(byMonth), values=Object.values(byMonth);
-    revChart=new Chart(ctx,{type:'bar',
-      data:{labels,datasets:[{label:'รายรับ',data:values,backgroundColor:GREEN+'cc',borderRadius:4}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-        scales:{x:{grid:{display:false},ticks:{font:{family:'Sarabun'}}},
-                y:{grid:{color:'#eee'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'k':v,font:{family:'Sarabun'}}}}}});
-  }
+  // ============================================================
+  // ===== UNIFIED DASHBOARD CHART =====
+  // ============================================================
+  let _dashMetric    = 'revenue';
+  let _dashPeriod    = 'month';
+  let _dashChartType = 'bar';
+  let dashMainChartInst = null;
 
-  // ============================================================
-  // ===== REPORTS CHARTS (all real data) =====
-  // ============================================================
-  let chartsInit=false;
+  // kept for sales page compatibility
   let pieChartInst, weightChartInst, channelChartInst;
   let salesMonthChartInst, salesWeightChartInst;
+  let chartsInit = false;
+  function initCharts(){ renderDashChart(); chartsInit = true; }
 
-  function initCharts(){ buildReportCharts(); chartsInit = true; }
+  function initDashboardChart(){ renderDashChart(); }
 
-  function buildReportCharts(){
-    // 1. Pie by product
-    const byProduct=groupSalesBy('product');
-    const pieLabels=Object.keys(byProduct),pieData=Object.values(byProduct);
-    const pieColors=pieLabels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]);
-    const pieTotal=pieData.reduce((s,v)=>s+v,0);
-    if(pieChartInst)pieChartInst.destroy();
-    const pieCtx = document.getElementById('pieChart');
-    if(pieCtx) pieChartInst=new Chart(pieCtx,{type:'doughnut',
-      data:{labels:pieLabels,datasets:[{data:pieData,backgroundColor:pieColors,borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}});
-    const legEl=document.getElementById('pie-legend');
-    if(legEl){legEl.innerHTML='';pieLabels.forEach((l,i)=>{const pct=pieTotal?Math.round(pieData[i]/pieTotal*100):0;legEl.innerHTML+=`<div class="legend-item"><div class="legend-dot" style="background:${pieColors[i]}"></div>${l} ${pct}%</div>`;});}
-    const subEl=document.getElementById('pie-subtitle');
-    if(subEl)subEl.textContent='รวม '+pieTotal.toLocaleString('th-TH')+' ฿ · '+salesData.length+' รายการ';
+  function buildReportCharts(){ renderDashChart(); }
 
-    // 2. Weight by crop per month (stacked bar)
-    _buildWeightChart('weightChart', 'weight-legend', 'weight-subtitle');
+  function setDashPeriod(p) {
+    _dashPeriod = p;
+    ['day','month','year'].forEach(x => {
+      const b = document.getElementById('dcp-' + x);
+      if (!b) return;
+      b.className  = p === x ? 'btn btn-primary' : 'btn btn-outline';
+      b.style.fontSize = '10px'; b.style.padding = '3px 7px';
+    });
+    renderDashChart();
+  }
 
-    // 3. Channel donut
-    const byChannel=groupSalesBy('channel');
-    const chLabels=Object.keys(byChannel),chData=Object.values(byChannel);
-    const chColors=chLabels.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]);
-    const chTotal=chData.reduce((s,v)=>s+v,0);
-    if(channelChartInst)channelChartInst.destroy();
-    const chCtx = document.getElementById('channelChart');
-    if(chCtx) channelChartInst=new Chart(chCtx,{type:'doughnut',
-      data:{labels:chLabels,datasets:[{data:chData,backgroundColor:chColors,borderWidth:2,borderColor:'#fff'}]},
-      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},cutout:'62%'}});
-    const chLeg=document.getElementById('channel-legend');
-    if(chLeg){chLeg.innerHTML='';chLabels.forEach((l,i)=>{const pct=chTotal?Math.round(chData[i]/chTotal*100):0;chLeg.innerHTML+=`<div class="legend-item"><div class="legend-dot" style="background:${chColors[i]}"></div>${l} ${pct}%</div>`;});}
+  function setDashChartType(t) {
+    _dashChartType = t;
+    ['bar','line'].forEach(x => {
+      const b = document.getElementById('dct-' + x);
+      if (!b) return;
+      b.className  = t === x ? 'btn btn-primary' : 'btn btn-outline';
+      b.style.fontSize = '10px'; b.style.padding = '3px 7px';
+    });
+    renderDashChart();
+  }
+
+  function renderDashChart() {
+    const metric  = document.getElementById('dash-chart-metric')?.value || _dashMetric;
+    _dashMetric   = metric;
+    const isPie   = metric === 'product_pie' || metric === 'channel_pie' || metric === 'crop_status';
+    const subEl   = document.getElementById('dash-chart-sub');
+    const legEl   = document.getElementById('dash-chart-legend');
+    const periodW = document.getElementById('dcp-wrap');
+    const typeW   = document.getElementById('dct-wrap');
+    if (periodW) periodW.style.display = isPie ? 'none' : '';
+    if (typeW)   typeW.style.display   = isPie ? 'none' : '';
+
+    if (dashMainChartInst) { dashMainChartInst.destroy(); dashMainChartInst = null; }
+    const ctx = document.getElementById('dashMainChart');
+    if (!ctx) return;
+    if (legEl) legEl.innerHTML = '';
+
+    // ── PIE / DONUT metrics ──
+    if (isPie) {
+      let labelsArr, dataArr, title;
+      if (metric === 'product_pie') {
+        const m = {}; salesData.forEach(s => { m[s.product] = (m[s.product]||0) + s.total; });
+        labelsArr = Object.keys(m).sort((a,b)=>m[b]-m[a]).slice(0,8);
+        dataArr   = labelsArr.map(k => m[k]);
+        title     = 'สินค้าขายดี — รวม ' + dataArr.reduce((s,v)=>s+v,0).toLocaleString('th-TH') + ' ฿';
+      } else if (metric === 'channel_pie') {
+        const m = {}; salesData.forEach(s => { m[s.channel] = (m[s.channel]||0) + s.total; });
+        labelsArr = Object.keys(m);
+        dataArr   = labelsArr.map(k => m[k]);
+        title     = 'ช่องทางการขาย — รวม ' + dataArr.reduce((s,v)=>s+v,0).toLocaleString('th-TH') + ' ฿';
+      } else {
+        const m = {}; cropItems.forEach(c => { m[c.status] = (m[c.status]||0) + 1; });
+        labelsArr = Object.keys(m);
+        dataArr   = labelsArr.map(k => m[k]);
+        title     = 'สถานะพืชผล — ' + cropItems.length + ' รายการ';
+      }
+      const colors = labelsArr.map((_,i) => CHART_COLORS[i % CHART_COLORS.length]);
+      if (subEl) subEl.textContent = title;
+      if (legEl) legEl.innerHTML   = labelsArr.map((l,i) => `<div class="legend-item"><div class="legend-dot" style="background:${colors[i]}"></div>${l} (${dataArr[i]})</div>`).join('');
+      dashMainChartInst = new Chart(ctx, {
+        type: _dashChartType === 'line' ? 'doughnut' : (_dashChartType === 'bar' ? 'bar' : 'doughnut'),
+        data: { labels: labelsArr, datasets:[{ data: dataArr, backgroundColor: colors.map(c=>c+'cc'), borderColor: colors, borderWidth: 1, borderRadius: 4 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } },
+          scales: _dashChartType === 'bar' ? {
+            x:{ grid:{display:false}, ticks:{font:{family:'Sarabun'}} },
+            y:{ grid:{color:'#eee'}, ticks:{font:{family:'Sarabun'}} }
+          } : {},
+          cutout: _dashChartType !== 'bar' ? '60%' : undefined }
+      });
+      return;
+    }
+
+    // ── TIME-SERIES metrics ──
+    const labels = _salesSortedLabels(_dashPeriod);
+    let datasets = [], yLabel = '';
+
+    if (metric === 'revenue') {
+      const m = {}; salesData.forEach(s => { const l = _saleLabel(s.date,_dashPeriod); m[l]=(m[l]||0)+s.total; });
+      const data = labels.map(l => m[l]||0);
+      const total = data.reduce((s,v)=>s+v,0);
+      if (subEl) subEl.textContent = 'รายได้รวม ' + total.toLocaleString('th-TH') + ' ฿';
+      yLabel = '฿';
+      const isLine = _dashChartType==='line';
+      datasets = [{ label:'ยอดขาย', data, backgroundColor: isLine ? GREEN+'33' : GREEN+'cc',
+        borderColor: GREEN, borderWidth: isLine?2:0, borderRadius:4,
+        pointBackgroundColor:GREEN, pointRadius:isLine?4:0, fill:isLine, tension:.35 }];
+    } else if (metric === 'weight') {
+      const m = {}; salesData.forEach(s => { const l = _saleLabel(s.date,_dashPeriod); m[l]=(m[l]||0)+(s.weight||0); });
+      const data = labels.map(l => m[l]||0);
+      const total = data.reduce((s,v)=>s+v,0);
+      if (subEl) subEl.textContent = 'น้ำหนักรวม ' + total.toLocaleString('th-TH') + ' กก.';
+      yLabel = 'กก.';
+      const isLine = _dashChartType==='line';
+      datasets = [{ label:'น้ำหนัก', data, backgroundColor: isLine ? '#f59e0b33' : '#f59e0bcc',
+        borderColor:'#f59e0b', borderWidth:isLine?2:0, borderRadius:4,
+        pointBackgroundColor:'#f59e0b', pointRadius:isLine?4:0, fill:isLine, tension:.35 }];
+    } else if (metric === 'activities') {
+      const m = {}; actItems.forEach(a => { const l = _saleLabel(a.date,_dashPeriod); m[l]=(m[l]||0)+1; });
+      const allLabels = _salesSortedLabels(_dashPeriod); // reuse for acts: build own sorted labels
+      const actFirst = {};
+      actItems.forEach(a => { const l = _saleLabel(a.date,_dashPeriod); if (!actFirst[l]||a.date<actFirst[l]) actFirst[l]=a.date; });
+      const actLabels = Object.keys(actFirst).sort((a,b)=>actFirst[a].localeCompare(actFirst[b]));
+      const data = actLabels.map(l => m[l]||0);
+      if (subEl) subEl.textContent = actItems.length + ' กิจกรรม · ' + actLabels.length + ' ' + ({day:'วัน',month:'เดือน',year:'ปี'}[_dashPeriod]);
+      yLabel = 'ครั้ง';
+      const isLine = _dashChartType==='line';
+      datasets = [{ label:'กิจกรรม', data, backgroundColor: isLine?'#8b5cf633':'#8b5cf6cc',
+        borderColor:'#8b5cf6', borderWidth:isLine?2:0, borderRadius:4,
+        pointBackgroundColor:'#8b5cf6', pointRadius:isLine?4:0, fill:isLine, tension:.35 }];
+      dashMainChartInst = new Chart(ctx, {
+        type: _dashChartType==='line'?'line':'bar',
+        data: { labels: actLabels, datasets },
+        options:{ responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+          scales:{ x:{grid:{display:false},ticks:{font:{family:'Sarabun'},maxRotation:45}},
+                   y:{grid:{color:'#eee'},ticks:{callback:v=>v+yLabel,font:{family:'Sarabun'}}} }}
+      });
+      return;
+    }
+
+    dashMainChartInst = new Chart(ctx, {
+      type: _dashChartType==='line'?'line':'bar',
+      data: { labels, datasets },
+      options:{ responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{ x:{grid:{display:false},ticks:{font:{family:'Sarabun'},maxRotation:45}},
+                 y:{grid:{color:'#eee'},ticks:{callback:v=>v>=1000?(v/1000).toFixed(1)+'k'+yLabel:v+yLabel,font:{family:'Sarabun'}}} }}
+    });
   }
 
   // ── Weight-by-crop stacked bar chart (shared by dashboard + sales page) ──
@@ -4446,7 +4707,235 @@
   }
 
   // ============================================================
-  // ===== SALES RENDER + EDIT/DELETE =====
+  // ===== MOBILE CARD VIEW + SWIPE TO DELETE =====
+  // ============================================================
+
+  function _isMobile() { return window.innerWidth <= 768; }
+
+  // ── Swipe-to-delete helper ──
+  function _attachSwipe(el, onDelete) {
+    let startX = 0, dx = 0, swiping = false;
+    el.addEventListener('touchstart', e => { startX = e.touches[0].clientX; dx = 0; swiping = true; }, { passive:true });
+    el.addEventListener('touchmove', e => {
+      if (!swiping) return;
+      dx = e.touches[0].clientX - startX;
+      if (dx < -10) el.classList.add('swiping-left');
+      if (dx > 10)  el.classList.remove('swiping-left');
+    }, { passive:true });
+    el.addEventListener('touchend', () => {
+      swiping = false;
+      if (dx < -60) { /* stay open — tap delete button */ }
+      else el.classList.remove('swiping-left');
+    });
+    const delBtn = el.querySelector('.m-card-del-btn');
+    if (delBtn) delBtn.addEventListener('click', () => { el.classList.remove('swiping-left'); onDelete(); });
+  }
+
+  // ── Activities mobile cards ──
+  function _renderActivityMobileCards(slice) {
+    const wrap = document.getElementById('activity-mobile-cards');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!slice.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px;">ยังไม่มีข้อมูล</div>'; return; }
+    slice.forEach(item => {
+      const st = getActStyle(item.type);
+      const div = document.createElement('div');
+      div.className = 'm-card';
+      div.innerHTML = `
+        <div class="m-card-del-btn">🗑<span style="font-size:10px;margin-top:2px;">ลบ</span></div>
+        <div class="m-card-row">
+          <span style="font-size:12px;background:${st.bg};color:${st.color};border:1px solid ${st.border};border-radius:5px;padding:2px 8px;font-weight:500;">${st.icon} ${item.type}</span>
+          ${item.fromCrop ? '<span style="font-size:10px;background:#dcfce7;color:#16a34a;border:1px solid #86efac;border-radius:4px;padding:1px 6px;">🌱</span>' : ''}
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px;">${item.note || '—'}</div>
+        <div class="m-card-meta">📅 ${fmtDate(item.date)} · 📍 ${item.plot} · 👤 ${item.person}</div>
+        ${item.material && item.material !== '—' ? `<div class="m-card-meta">🧪 ${item.material}</div>` : ''}
+        <div class="m-card-actions">
+          <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="editActItem(${item.id})">✏️ แก้ไข</button>
+        </div>`;
+      _attachSwipe(div, () => askConfirmDel('act', item.id, 'กิจกรรม ' + item.type));
+      wrap.appendChild(div);
+    });
+  }
+
+  // ── Sales mobile cards ──
+  function _renderSalesMobileCards(slice) {
+    const wrap = document.getElementById('sales-mobile-cards');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!slice.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px;">ยังไม่มีข้อมูล</div>'; return; }
+    slice.forEach(item => {
+      const cls = paymentBadge[item.payment] || 'badge-gray';
+      const div = document.createElement('div');
+      div.className = 'm-card';
+      div.innerHTML = `
+        <div class="m-card-del-btn">🗑<span style="font-size:10px;margin-top:2px;">ลบ</span></div>
+        <div class="m-card-row" style="justify-content:space-between;">
+          <span style="font-size:14px;font-weight:700;color:var(--green-700);">${item.total.toLocaleString('th-TH')} ฿</span>
+          <span class="badge ${cls}">${item.payment}</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:2px;">🌿 ${item.product}</div>
+        <div class="m-card-meta">📅 ${fmtDate(item.date)} · ⚖️ ${item.weight} กก. · ฿${item.price}/กก.</div>
+        <div class="m-card-meta">
+          👤 <button class="btn-link-inline" onclick="openCustHistoryByName('${item.customer.replace(/'/g,'\\\'')}')" style="background:none;border:none;color:var(--green-600);font-size:11px;cursor:pointer;padding:0;text-decoration:underline;">${item.customer}</button>
+          · 📣 ${item.channel}
+        </div>
+        <div class="m-card-actions">
+          <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="editSaleItem(${item._id})">✏️ แก้ไข</button>
+        </div>`;
+      _attachSwipe(div, () => askConfirmDel('sale', item._id, item.product));
+      wrap.appendChild(div);
+    });
+  }
+
+  // ── Customers mobile cards ──
+  function _renderCustMobileCards(slice) {
+    const wrap = document.getElementById('cust-mobile-cards');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    if (!slice.length) { wrap.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px;">ยังไม่มีข้อมูล</div>'; return; }
+    slice.forEach(item => {
+      const cls = custTypeMap[item.type] || 'badge-gray';
+      const div = document.createElement('div');
+      div.className = 'm-card';
+      div.innerHTML = `
+        <div class="m-card-del-btn">🗑<span style="font-size:10px;margin-top:2px;">ลบ</span></div>
+        <div class="m-card-row" style="justify-content:space-between;">
+          <span style="font-size:14px;font-weight:700;">${item.name}</span>
+          <span class="badge ${cls}">${item.type}</span>
+        </div>
+        <div class="m-card-meta">📞 ${item.contact} · 🌿 ${item.products}</div>
+        <div class="m-card-meta">💰 ${item.total.toLocaleString('th-TH')} ฿ · สั่งล่าสุด ${fmtDate(item.lastOrder)}</div>
+        <div class="m-card-actions">
+          <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="openCustHistory(${item.id})">🧾 ประวัติ</button>
+          <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="editCustItem(${item.id})">✏️ แก้ไข</button>
+        </div>`;
+      _attachSwipe(div, () => askConfirmDel('cust', item.id, item.name));
+      wrap.appendChild(div);
+    });
+  }
+
+  // ============================================================
+  // ===== FAB — context-aware =====
+  // ============================================================
+  const _fabActions = {
+    dashboard:   () => openSaleModal(),
+    crops:       () => openCropModal(),
+    activities:  () => openActModal(),
+    inventory:   () => openInvModal(),
+    sales:       () => openSaleModal(),
+    customers:   () => openCustModal(),
+    projects:    () => openProjectModal(),
+    calendar:    () => openCalEventModal(),
+    settings:    () => {},
+  };
+  let _currentPage = 'dashboard';
+
+  function fabAction() {
+    const fn = _fabActions[_currentPage];
+    if (fn) fn();
+  }
+
+  // ============================================================
+  // ===== CUSTOMER HISTORY MODAL =====
+  // ============================================================
+  function openCustHistory(id) {
+    const cust = custItems.find(c => c.id === id);
+    if (!cust) return;
+    _showCustHistory(cust);
+  }
+
+  function openCustHistoryByName(name) {
+    const cust = custItems.find(c => c.name === name);
+    if (cust) { _showCustHistory(cust); return; }
+    // No customer record — show what we have from sales
+    _showCustHistoryFromSales(name);
+  }
+
+  function _showCustHistory(cust) {
+    const sales = [...salesData].filter(s => s.customer === cust.name).sort((a,b) => b.date.localeCompare(a.date));
+    const total = sales.reduce((s,i) => s + i.total, 0);
+    const totalW = sales.reduce((s,i) => s + (i.weight||0), 0);
+    document.getElementById('cust-hist-name').innerHTML = `👤 ${cust.name} <span class="badge ${custTypeMap[cust.type]||'badge-gray'}" style="font-size:11px;">${cust.type}</span>`;
+    document.getElementById('cust-hist-stats').innerHTML = `
+      <div class="quick-pill">🛒 ${sales.length} รายการ</div>
+      <div class="quick-pill">💰 รวม <strong>${total.toLocaleString('th-TH')} ฿</strong></div>
+      <div class="quick-pill">⚖️ รวม <strong>${totalW.toLocaleString('th-TH')} กก.</strong></div>
+      ${cust.contact ? `<div class="quick-pill">📞 ${cust.contact}</div>` : ''}`;
+    _renderCustHistTimeline(sales);
+    document.getElementById('modal-cust-history').classList.add('open');
+  }
+
+  function _showCustHistoryFromSales(name) {
+    const sales = [...salesData].filter(s => s.customer === name).sort((a,b) => b.date.localeCompare(a.date));
+    const total = sales.reduce((s,i) => s + i.total, 0);
+    document.getElementById('cust-hist-name').innerHTML = `👤 ${name}`;
+    document.getElementById('cust-hist-stats').innerHTML = `<div class="quick-pill">🛒 ${sales.length} รายการ</div><div class="quick-pill">💰 <strong>${total.toLocaleString('th-TH')} ฿</strong></div>`;
+    _renderCustHistTimeline(sales);
+    document.getElementById('modal-cust-history').classList.add('open');
+  }
+
+  function _renderCustHistTimeline(sales) {
+    const el = document.getElementById('cust-hist-timeline');
+    if (!el) return;
+    if (!sales.length) { el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px;">ยังไม่มีประวัติการซื้อ</div>'; return; }
+    el.innerHTML = sales.map((s, i) => {
+      const cls = paymentBadge[s.payment] || 'badge-gray';
+      return `
+        <div style="display:flex;gap:12px;padding:10px 0;${i < sales.length-1 ? 'border-bottom:1px solid var(--gray-100)' : ''}">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0;">
+            <div style="width:10px;height:10px;border-radius:50%;background:var(--green-500);margin-top:3px;"></div>
+            ${i < sales.length-1 ? '<div style="width:2px;flex:1;background:var(--gray-100);margin-top:3px;"></div>' : ''}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:13px;font-weight:600;">🌿 ${s.product}</span>
+              <span style="font-size:13px;font-weight:700;color:var(--green-700);">${s.total.toLocaleString('th-TH')} ฿</span>
+            </div>
+            <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">
+              📅 ${fmtDate(s.date)} · ⚖️ ${s.weight} กก. · ฿${s.price}/กก. · 📣 ${s.channel}
+            </div>
+            <div style="margin-top:4px;"><span class="badge ${cls}" style="font-size:10px;">${s.payment}</span></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ============================================================
+  // ===== PLOT ACTIVITIES MODAL =====
+  // ============================================================
+  function openPlotActs(cropId) {
+    const crop = cropItems.find(c => c.id === cropId);
+    if (!crop) return;
+    const plot = crop.plot;
+    const acts = [...actItems].filter(a => a.plot === plot || a.note?.includes(crop.name)).sort((a,b) => b.date.localeCompare(a.date));
+    document.getElementById('plot-acts-name').innerHTML = `🌾 ${crop.name} · <span style="color:var(--gray-500);font-size:12px;">แปลง ${plot}</span>`;
+    const listEl  = document.getElementById('plot-acts-list');
+    const emptyEl = document.getElementById('plot-acts-empty');
+    if (!acts.length) {
+      listEl.innerHTML = ''; emptyEl.style.display = '';
+    } else {
+      emptyEl.style.display = 'none';
+      listEl.innerHTML = acts.map(a => {
+        const st = getActStyle(a.type);
+        return `<div style="display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--gray-50);">
+          <div style="width:8px;height:8px;border-radius:50%;background:${st.color};flex-shrink:0;margin-top:5px;"></div>
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:2px;">
+              <span style="font-size:11px;background:${st.bg};color:${st.color};border:1px solid ${st.border};border-radius:4px;padding:1px 7px;font-weight:500;">${st.icon} ${a.type}</span>
+              <span style="font-size:11px;color:var(--gray-400);">📅 ${fmtDate(a.date)}</span>
+              <span style="font-size:11px;color:var(--gray-400);">👤 ${a.person}</span>
+            </div>
+            ${a.note ? `<div style="font-size:12px;color:var(--gray-600);">${a.note}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+    document.getElementById('modal-plot-acts').classList.add('open');
+  }
+
+  // ============================================================
+  // ===== SALES → CUSTOMER LINK (desktop table) =====
   // ============================================================
   let salesRendered=false, editingSaleId=null;
   const paymentBadge={'เงินสด':'badge-green','โอน':'badge-sky','รอชำระ':'badge-amber'};
@@ -4794,23 +5283,50 @@
         }).join('')
       : '<div style="color:var(--gray-400);font-size:13px;padding:8px 0">ยังไม่มีกิจกรรม</div>';
 
-    // ── Crop progress — max 10 ──
-    const statusPct = {'เพาะกล้า':10,'ย้ายกล้า':25,'เติบโต':40,'กำลังโต':65,'พร้อมเก็บ':90,'เก็บเกี่ยวแล้ว':100};
-    const statusCol = {'เพาะกล้า':'#a07850','ย้ายกล้า':'#3b8fd4','เติบโต':'#3b8fd4','กำลังโต':'#e8a820','พร้อมเก็บ':'#5cb85c','เก็บเกี่ยวแล้ว':'#9a9890'};
+    // ── Crop progress — stage breakdown ──
+    const CROP_STAGES = ['เพาะกล้า','ย้ายกล้า','เติบโต','กำลังโต','พร้อมเก็บ','เก็บเกี่ยวแล้ว','เสียหาย/ตาย'];
+    const STAGE_COLOR = {'เพาะกล้า':'#a07850','ย้ายกล้า':'#3b8fd4','เติบโต':'#22d3ee','กำลังโต':'#f59e0b','พร้อมเก็บ':'#22c55e','เก็บเกี่ยวแล้ว':'#9a9890','เสียหาย/ตาย':'#ef4444'};
+    const STAGE_PCT  = {'เพาะกล้า':10,'ย้ายกล้า':25,'เติบโต':45,'กำลังโต':65,'พร้อมเก็บ':90,'เก็บเกี่ยวแล้ว':100,'เสียหาย/ตาย':0};
+    const STAGE_ICON = {'เพาะกล้า':'🌰','ย้ายกล้า':'🌿','เติบโต':'🌱','กำลังโต':'🌳','พร้อมเก็บ':'🌾','เก็บเกี่ยวแล้ว':'✅','เสียหาย/ตาย':'💀'};
+    const total = cropItems.length;
+    const stageCnt = {};
+    CROP_STAGES.forEach(s => stageCnt[s] = 0);
+    cropItems.forEach(c => { if (stageCnt[c.status] !== undefined) stageCnt[c.status]++; });
+
     const progEl = document.getElementById('dash-crop-progress');
-    if (progEl) progEl.innerHTML = cropItems.length
-      ? cropItems.slice(0,10).map(item => {
-          const pct = statusPct[item.status] || 50;
-          const col = statusCol[item.status] || '#9a9890';
-          return `<div class="progress-item">
-            <div class="progress-label" style="font-size:12px">${item.name}
-              <span style="font-size:10px;color:var(--gray-400);margin-left:4px">${item.status}</span>
+    if (progEl) {
+      if (!total) {
+        progEl.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:8px">ยังไม่มีข้อมูลพืชผล</div>';
+      } else {
+        // Stage summary bar
+        let summaryBar = `<div style="display:flex;border-radius:6px;overflow:hidden;height:14px;margin-bottom:12px;">`;
+        CROP_STAGES.forEach(s => {
+          const pct = total ? Math.round(stageCnt[s]/total*100) : 0;
+          if (pct > 0) summaryBar += `<div style="width:${pct}%;background:${STAGE_COLOR[s]};transition:width .4s" title="${s}: ${stageCnt[s]} (${pct}%)"></div>`;
+        });
+        summaryBar += `</div>`;
+
+        // Stage rows
+        const stageRows = CROP_STAGES.filter(s => stageCnt[s] > 0).map(s => {
+          const cnt = stageCnt[s];
+          const pct = Math.round(cnt/total*100);
+          return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="font-size:14px;width:20px;text-align:center;">${STAGE_ICON[s]}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                <span style="font-size:12px;font-weight:500;color:var(--gray-700);">${s}</span>
+                <span style="font-size:11px;color:var(--gray-400);">${cnt} แปลง · ${pct}%</span>
+              </div>
+              <div style="height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
+                <div style="width:${pct}%;height:100%;background:${STAGE_COLOR[s]};border-radius:3px;transition:width .4s;"></div>
+              </div>
             </div>
-            <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%;background:${col}"></div></div>
-            <div class="progress-val" style="font-size:11px">${pct}%</div>
           </div>`;
-        }).join('')
-      : '<div style="color:var(--gray-400);font-size:13px;padding:8px">ยังไม่มีข้อมูลพืชผล</div>';
+        }).join('');
+
+        progEl.innerHTML = summaryBar + stageRows;
+      }
+    }
 
     // ── Alerts ──
     const alertsEl = document.getElementById('dash-alerts');
@@ -4828,25 +5344,38 @@
       alertsEl.innerHTML = alerts.slice(0,8).join('');
     }
 
-    // ── Projects preview ──
+    // ── Projects preview — sorted by priority ──
     renderNotifications();
     const projEl = document.getElementById('dash-projects-preview');
     if (projEl) {
-      const activeProjList = [...projectItems].sort((a,b)=>b.pct-a.pct).slice(0,4);
-      if (!activeProjList.length) {
+      const todayISO = now.toISOString().slice(0,10);
+      function _projScore(p) {
+        if (p.status==='มีปัญหา')          return 0;
+        if (p.status==='กำลังดำเนินการ' && p.end && p.end < todayISO) return 1;
+        if (p.status==='กำลังดำเนินการ') return 2;
+        if (p.status==='วางแผน')           return 3;
+        if (p.status==='เสร็จสิ้น')        return 4;
+        return 5;
+      }
+      const sorted = [...projectItems].sort((a,b) => _projScore(a) - _projScore(b)).slice(0,5);
+      if (!sorted.length) {
         projEl.innerHTML = '<div style="color:var(--gray-400);font-size:13px;padding:8px">ยังไม่มีโครงการ</div>';
       } else {
-        projEl.innerHTML = activeProjList.map(p => {
+        projEl.innerHTML = sorted.map(p => {
           const sm = PROJ_STATUS_MAP[p.status]||PROJ_STATUS_MAP['วางแผน'];
-          const barC = p.pct>=100?'#22c55e':p.pct>=50?'#3b82f6':'#eab308';
+          const barC = p.status==='เสียหาย/ตาย'?'#ef4444':p.pct>=100?'#22c55e':p.pct>=50?'#3b82f6':'#eab308';
+          const daysLeft = p.end ? Math.ceil((new Date(p.end)-now)/86400000) : null;
+          const deadlineTag = daysLeft !== null
+            ? `<span style="font-size:10px;color:${daysLeft<0?'#ef4444':daysLeft<7?'#f59e0b':'var(--gray-400)'};">
+                ${daysLeft<0?'⚠️ เกิน '+Math.abs(daysLeft)+' วัน':'⏳ อีก '+daysLeft+' วัน'}</span>` : '';
           return `<div style="padding:6px 0;border-bottom:1px solid var(--gray-100)">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
-              <span style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%">${p.name}</span>
-              <span class="badge ${sm.cls}" style="font-size:10px">${sm.icon} ${p.status}</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap;">
+              <span style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%">${p.name}</span>
+              <div style="display:flex;gap:4px;align-items:center;">${deadlineTag}<span class="badge ${sm.cls}" style="font-size:10px">${sm.icon} ${p.status}</span></div>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
               <div style="flex:1;height:5px;background:var(--gray-100);border-radius:3px;overflow:hidden">
-                <div style="width:${p.pct}%;height:100%;background:${barC}"></div>
+                <div style="width:${p.pct}%;height:100%;background:${barC};transition:width .4s"></div>
               </div>
               <span style="font-size:11px;font-weight:600;color:${barC}">${p.pct}%</span>
             </div>
@@ -4854,7 +5383,7 @@
         }).join('');
       }
     }
-  }
+  } // end renderDashboard
 
   // ============================================================
   // ===== NOTIFICATION SYSTEM =====
@@ -4990,17 +5519,27 @@
   let calMonth = new Date().getMonth(); // 0-based
   let calRendered = false;
   let editingCalId = null;
-  let _nextCalId = 1;
+  let _nextCalId = 18; // start after seeded events
 
   // seed some sample events
   let calEvents = [
-    { id:_nextCalId++, title:'รดน้ำแปลงผักคะน้า', start:'2025-04-04', end:'2025-04-04', priority:'farm',   cat:'บำรุงรักษา', note:'รดน้ำช่วงเช้า' },
-    { id:_nextCalId++, title:'เก็บเกี่ยวผักบุ้ง',  start:'2025-04-06', end:'2025-04-07', priority:'high',   cat:'เก็บเกี่ยว', note:'ส่งตลาดสดเช้า' },
-    { id:_nextCalId++, title:'ใส่ปุ๋ยหมัก แปลง C', start:'2025-04-09', end:'2025-04-09', priority:'normal', cat:'การปลูก',  note:'' },
-    { id:_nextCalId++, title:'ส่งผักให้ลูกค้า',    start:'2025-04-12', end:'2025-04-12', priority:'medium', cat:'การขาย',   note:'คุณนุ่น + ตลาด' },
-    { id:_nextCalId++, title:'ตรวจสุขภาพดิน',      start:'2025-04-15', end:'2025-04-15', priority:'farm',   cat:'ตรวจสอบ', note:'วัดค่า pH' },
-    { id:_nextCalId++, title:'เก็บเกี่ยวมะเขือเทศ',start:'2025-04-20', end:'2025-04-21', priority:'high',   cat:'เก็บเกี่ยว', note:'' },
-    { id:_nextCalId++, title:'สั่งซื้อปุ๋ยใหม่',   start:'2025-04-25', end:'2025-04-25', priority:'medium', cat:'ทั่วไป',   note:'ปุ๋ยหมักอินทรีย์' },
+    { id:1,  title:'เก็บเกี่ยวผักคะน้าใบใหญ่',   start:'2026-05-10', end:'2026-05-10', priority:'high',   cat:'เก็บเกี่ยว',  note:'ส่งตลาดเช้า + โรงแรมเวียงลคอร' },
+    { id:2,  title:'ส่ง Tops Supermarket',         start:'2026-05-12', end:'2026-05-12', priority:'medium', cat:'การขาย',     note:'เคล 20 กก. + มะนาว 30 กก.' },
+    { id:3,  title:'เก็บเกี่ยวผักบุ้งจีน',        start:'2026-05-13', end:'2026-05-13', priority:'high',   cat:'เก็บเกี่ยว',  note:'แปลง E1' },
+    { id:4,  title:'ใส่ปุ๋ยหมักรอบเดือน',         start:'2026-05-14', end:'2026-05-14', priority:'normal', cat:'บำรุงรักษา',  note:'ทุกแปลงพร้อมกัน' },
+    { id:5,  title:'ยื่นเอกสาร Organic มกอช.',    start:'2026-05-15', end:'2026-05-15', priority:'high',   cat:'เอกสาร',      note:'นัดกับเจ้าหน้าที่ มกอช. ที่ลำปาง' },
+    { id:6,  title:'เก็บเกี่ยวผักเคล',            start:'2026-05-15', end:'2026-05-15', priority:'medium', cat:'เก็บเกี่ยว',  note:'แปลง B3 ประมาณ 50 กก.' },
+    { id:7,  title:'ตรวจสุขภาพดินรายเดือน',       start:'2026-05-16', end:'2026-05-16', priority:'farm',   cat:'ตรวจสอบ',    note:'วัดค่า pH + ความชื้น ทุกแปลง' },
+    { id:8,  title:'ประชุมทีมงานประจำเดือน',       start:'2026-05-17', end:'2026-05-17', priority:'normal', cat:'บริหาร',      note:'สรุปผลเดือน พ.ค. + วางแผน มิ.ย.' },
+    { id:9,  title:'สั่งซื้อถุงบรรจุผักด่วน',     start:'2026-05-18', end:'2026-05-18', priority:'high',   cat:'จัดซื้อ',     note:'หมดแล้ว ต้องสั่งก่อนส่งลูกค้า' },
+    { id:10, title:'เก็บเกี่ยวมะเขือเทศราชินี',   start:'2026-05-20', end:'2026-05-21', priority:'high',   cat:'เก็บเกี่ยว',  note:'แปลง B1–B2 คาดได้ 180 กก.' },
+    { id:11, title:'เก็บเกี่ยวผักชีไทย',          start:'2026-05-20', end:'2026-05-20', priority:'medium', cat:'เก็บเกี่ยว',  note:'แปลง A4' },
+    { id:12, title:'ตรวจรับงานระบบน้ำแปลง F',     start:'2026-05-22', end:'2026-05-22', priority:'medium', cat:'โครงการ',     note:'ตรวจระบบน้ำหยด Phase 2' },
+    { id:13, title:'เก็บเกี่ยวผักกาดขาวปลี',      start:'2026-05-22', end:'2026-05-22', priority:'medium', cat:'เก็บเกี่ยว',  note:'แปลง A5–A6 คาด 200 กก.' },
+    { id:14, title:'เก็บเกี่ยวดาวเรืองส้ม',        start:'2026-05-25', end:'2026-05-25', priority:'normal', cat:'เก็บเกี่ยว',  note:'ส่งตลาดดอกไม้ลำปาง' },
+    { id:15, title:'สิ้นเดือน — สรุปยอดขาย พ.ค.', start:'2026-05-31', end:'2026-05-31', priority:'medium', cat:'บริหาร',      note:'สรุปรายรับ-รายจ่าย และวางแผนปลูกรอบถัดไป' },
+    { id:16, title:'ปลูกพืชรอบใหม่ แปลง A',       start:'2026-06-01', end:'2026-06-02', priority:'farm',   cat:'การปลูก',    note:'คะน้า + ผักกาดหอม รุ่นใหม่' },
+    { id:17, title:'เก็บเกี่ยวข้าวโพดหวาน',       start:'2026-06-15', end:'2026-06-16', priority:'high',   cat:'เก็บเกี่ยว',  note:'แปลง C1–C4 คาด 900 กก.' },
   ];
 
   function isoDate(y, m, d) {
@@ -5575,6 +6114,7 @@
           <td>
             <div class="inv-actions">
               <button class="btn-icon" title="ประวัติเก็บเกี่ยว" onclick="openHarvestLogModal(${item.id})" style="font-size:12px">📋</button>
+              <button class="btn-icon" title="กิจกรรมในแปลง" onclick="openPlotActs(${item.id})" style="font-size:12px">🌿</button>
               <button class="btn-icon edit" onclick="editCropItem(${item.id})">✏️</button>
               <button class="btn-icon del" onclick="askConfirmDel('crop',${item.id},'${item.name.replace(/'/g,"\\'")}')">🗑</button>
             </div>
@@ -5657,6 +6197,7 @@
         </td>`;
       tbody.appendChild(tr);
     });
+    _renderActivityMobileCards(slice);
     _renderPagination('activities', filtered.length, page);
     // Render legend from groups that appear in data
     _renderActLegend();
@@ -5684,10 +6225,15 @@
     tbody.innerHTML = '';
     slice.forEach(item => {
       const cls = paymentBadge[item.payment] || 'badge-gray';
+      const hasCust = custItems.some(c => c.name === item.customer);
+      const custCell = hasCust
+        ? `<button onclick="openCustHistoryByName('${item.customer.replace(/'/g,'\\\'')}')" style="background:none;border:none;color:var(--green-600);cursor:pointer;padding:0;font-size:inherit;text-decoration:underline;">${item.customer}</button>`
+        : item.customer;
       const tr  = document.createElement('tr');
-      tr.innerHTML = `<td><input type='checkbox' class='chk-sales' data-id='${item._id}' onchange="_updateSelBar('sales')"></td><td>${fmtDate(item.date)}</td><td>${item.product}</td><td>${item.customer}</td><td>${item.channel}</td><td>${item.weight}</td><td>${item.price}</td><td>${item.total.toLocaleString('th-TH')}</td><td><span class="badge ${cls}">${item.payment}</span></td><td><div class="inv-actions"><button class="btn-icon edit" onclick="editSaleItem(${item._id})">✏️</button><button class="btn-icon del" onclick="askConfirmDel('sale',${item._id},'${item.product}')">🗑</button></div></td>`;
+      tr.innerHTML = `<td><input type='checkbox' class='chk-sales' data-id='${item._id}' onchange="_updateSelBar('sales')"></td><td>${fmtDate(item.date)}</td><td>${item.product}</td><td>${custCell}</td><td>${item.channel}</td><td>${item.weight}</td><td>${item.price}</td><td>${item.total.toLocaleString('th-TH')}</td><td><span class="badge ${cls}">${item.payment}</span></td><td><div class="inv-actions"><button class="btn-icon edit" onclick="editSaleItem(${item._id})">✏️</button><button class="btn-icon del" onclick="askConfirmDel('sale',${item._id},'${item.product}')">🗑</button></div></td>`;
       tbody.appendChild(tr);
     });
+    _renderSalesMobileCards(slice);
     _renderPagination('sales', filtered.length, page);
     updateSaleStats();
   }
@@ -5706,7 +6252,7 @@
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><input type='checkbox' class='chk-custs' data-id='${item.id}' onchange="_updateSelBar('customers')"></td>
-        <td><strong>${item.name}</strong></td>
+        <td><button onclick="openCustHistory(${item.id})" style="background:none;border:none;cursor:pointer;font-weight:600;color:var(--green-700);padding:0;text-decoration:underline;">${item.name}</button></td>
         <td><span class="badge ${cls}">${item.type}</span></td>
         <td>${item.contact}</td>
         <td>${item.products}</td>
@@ -5714,12 +6260,14 @@
         <td>${fmtDate(item.lastOrder)}</td>
         <td>
           <div class="inv-actions">
+            <button class="btn-icon" onclick="openCustHistory(${item.id})" title="ประวัติ">🧾</button>
             <button class="btn-icon edit" onclick="editCustItem(${item.id})">✏️</button>
             <button class="btn-icon del"  onclick="askConfirmDel('cust',${item.id},'${item.name}')">🗑</button>
           </div>
         </td>`;
       tbody.appendChild(tr);
     });
+    _renderCustMobileCards(slice);
     _renderPagination('customers', filtered.length, page);
   }
 
@@ -5930,8 +6478,65 @@
   // ============================================================
   // ===== PROJECT MANAGEMENT SYSTEM =====
   // ============================================================
-  let projectItems = [];
-  let _nextProjId  = 1;
+  let projectItems = [
+    { id:1, name:'ขยายระบบน้ำหยด Phase 2',
+      desc:'ติดตั้งระบบน้ำหยดในแปลง C, F, G เพิ่มอีก 8 ไร่ เพื่อประหยัดน้ำและแรงงาน',
+      status:'กำลังดำเนินการ', pct:60, start:'2026-03-01', end:'2026-06-30',
+      budget:85000, spent:52000, team:['สมชาย','มาลี'],
+      issues:1, result:'',
+      timeline:[
+        { id:'t1', title:'สำรวจและออกแบบ',     status:'done',  date:'2026-03-10', note:'เสร็จตามแผน' },
+        { id:'t2', title:'จัดซื้อวัสดุ',        status:'done',  date:'2026-03-25', note:'ซื้อท่อ PE + หัวน้ำหยด' },
+        { id:'t3', title:'ติดตั้งแปลง C',        status:'done',  date:'2026-04-15', note:'เสร็จแล้ว ทดสอบผ่าน' },
+        { id:'t4', title:'ติดตั้งแปลง F',        status:'doing', date:'2026-05-20', note:'อยู่ระหว่างดำเนินการ' },
+        { id:'t5', title:'ติดตั้งแปลง G',        status:'todo',  date:'2026-06-15', note:'' },
+        { id:'t6', title:'ทดสอบและตรวจรับงาน',  status:'todo',  date:'2026-06-28', note:'' },
+      ],
+      createdAt:'2026-02-15', updatedAt:'2026-05-01' },
+
+    { id:2, name:'ขอรับรองมาตรฐาน Organic Thailand',
+      desc:'ยื่นขอใบรับรองเกษตรอินทรีย์ มกอช. สำหรับแปลง A, B, E, G รวม 5 ไร่',
+      status:'กำลังดำเนินการ', pct:40, start:'2026-01-15', end:'2026-09-30',
+      budget:30000, spent:8500, team:['มาลี','สมชาย'],
+      issues:0, result:'',
+      timeline:[
+        { id:'t1', title:'เตรียมเอกสารฟาร์ม',    status:'done',  date:'2026-02-01', note:'บันทึกข้อมูลย้อนหลัง 3 ปี' },
+        { id:'t2', title:'ตรวจสอบดินและน้ำ',     status:'done',  date:'2026-03-01', note:'ผล pH 6.0–6.5 ผ่านเกณฑ์' },
+        { id:'t3', title:'ยื่นใบสมัคร',           status:'doing', date:'2026-05-15', note:'อยู่ระหว่างรวบรวมเอกสาร' },
+        { id:'t4', title:'เจ้าหน้าที่ตรวจฟาร์ม', status:'todo',  date:'2026-07-01', note:'' },
+        { id:'t5', title:'รับใบรับรอง',           status:'todo',  date:'2026-09-15', note:'' },
+      ],
+      createdAt:'2026-01-10', updatedAt:'2026-04-20' },
+
+    { id:3, name:'เปิดช่องทางขายตรง CSA Box',
+      desc:'ทดลองโปรแกรมกล่องผักรายสัปดาห์ ส่งตรงถึงบ้าน 20 สมาชิก ในรัศมี 20 กม.',
+      status:'วางแผน', pct:15, start:'2026-05-01', end:'2026-07-31',
+      budget:25000, spent:3200, team:['มาลี'],
+      issues:0, result:'',
+      timeline:[
+        { id:'t1', title:'ออกแบบ Package และราคา', status:'done',  date:'2026-05-10', note:'กล่อง 250 บ./สัปดาห์' },
+        { id:'t2', title:'โฆษณาหา 20 สมาชิกแรก', status:'doing', date:'2026-05-25', note:'Facebook + ปากต่อปาก' },
+        { id:'t3', title:'เริ่มส่งกล่องแรก',       status:'todo',  date:'2026-06-01', note:'' },
+        { id:'t4', title:'ประเมินผล 4 สัปดาห์',   status:'todo',  date:'2026-07-01', note:'' },
+        { id:'t5', title:'ขยายเป็น 50 สมาชิก',    status:'todo',  date:'2026-07-31', note:'' },
+      ],
+      createdAt:'2026-04-20', updatedAt:'2026-05-03' },
+
+    { id:4, name:'โรงเรือนเพาะกล้าใหม่',
+      desc:'สร้างโรงเรือนเพาะชำระบบควบคุมอุณหภูมิ 6×12 ม. เพื่อเพิ่มอัตรารอดของกล้า',
+      status:'มีปัญหา', pct:30, start:'2026-02-01', end:'2026-05-31',
+      budget:120000, spent:42000, team:['สมชาย'],
+      issues:2, result:'',
+      timeline:[
+        { id:'t1', title:'ออกแบบและขออนุญาต',   status:'done',  date:'2026-02-15', note:'ได้รับอนุญาต อบต. แล้ว' },
+        { id:'t2', title:'เทพื้นคอนกรีต',        status:'done',  date:'2026-03-10', note:'เสร็จแล้ว' },
+        { id:'t3', title:'ติดตั้งโครงสร้างเหล็ก',status:'issue', date:'2026-04-01', note:'⚠️ ช่างทิ้งงานกลางคัน หาช่างใหม่' },
+        { id:'t4', title:'ติดตั้งหลังคาและม่าน',  status:'todo',  date:'2026-05-20', note:'' },
+        { id:'t5', title:'ระบบ Mist + ไฟโตรอน', status:'todo',  date:'2026-05-28', note:'' },
+      ],
+      createdAt:'2026-01-25', updatedAt:'2026-04-05' },
+  ];
+  let _nextProjId = 5;
   let _editingProjId = null;
   let _projView    = 'card'; // 'card' | 'list'
   let _viewingProjId = null;
@@ -6134,12 +6739,23 @@
     if (_viewingProjId) openProjectModal(_viewingProjId);
   }
 
+  function _projPriScore(p) {
+    const todayISO = new Date().toISOString().slice(0,10);
+    if (p.status==='มีปัญหา')          return 0;
+    if (p.status==='กำลังดำเนินการ' && p.end && p.end < todayISO) return 1;
+    if (p.status==='กำลังดำเนินการ') return 2;
+    if (p.status==='วางแผน')           return 3;
+    if (p.status==='เสร็จสิ้น')        return 4;
+    return 5;
+  }
+
   function renderProjects() {
     const q       = (document.getElementById('search-projects')?.value||'').toLowerCase();
     const filter  = document.getElementById('proj-filter-status')?.value || '';
     let list = [...projectItems]
       .filter(p => !q || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q))
-      .filter(p => !filter || p.status === filter);
+      .filter(p => !filter || p.status === filter)
+      .sort((a,b) => _projPriScore(a) - _projPriScore(b));
 
     // Stats
     const all    = projectItems.length;
