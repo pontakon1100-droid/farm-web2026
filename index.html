@@ -5159,6 +5159,7 @@
   // ===== DASHBOARD RENDER (from real data) =====
   // ============================================================
   function renderDashboard() {
+    _autoUpdateCropStatuses(); // ← อัปเดตสถานะพืชตามวันเก็บเกี่ยวทุกครั้ง
     const now = new Date();
     const thisMonth = now.toISOString().slice(0,7); // YYYY-MM
     const totalRevenue  = salesData.reduce((s,i) => s + i.total, 0);
@@ -8540,11 +8541,31 @@ ${calendarHTML}
   }
 
   // ============================================================
+  // ===== AUTO-UPDATE CROP STATUS BY HARVEST DATE =====
+  // ============================================================
+  function _autoUpdateCropStatuses() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString().slice(0, 10);
+    const SKIP = new Set(['เก็บเกี่ยวแล้ว', 'เสียหาย/ตาย', 'พร้อมเก็บ']);
+    let changed = false;
+    cropItems.forEach(c => {
+      if (!c.harvestDate || SKIP.has(c.status)) return;
+      if (c.harvestDate <= todayISO) {
+        c.status = 'พร้อมเก็บ';
+        changed = true;
+      }
+    });
+    if (changed) saveData();
+  }
+
+  // ============================================================
   // ===== BOOT =====
   // ============================================================
   (async () => {
     initFirebase();
     await loadData();
+    _autoUpdateCropStatuses();
     _applySidebarInfo();
     _syncWorkerDropdown();
     _syncPlotDropdown();
