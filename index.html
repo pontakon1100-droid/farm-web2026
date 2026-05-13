@@ -2765,7 +2765,7 @@
       </div>
       <div class="form-group">
         <label class="form-label">น้ำหนัก (กก.)</label>
-        <input type="number" class="form-control" placeholder="0" id="sale-weight" min="0" oninput="calcSaleTotal()">
+        <input type="number" class="form-control" placeholder="0" id="sale-weight" min="0" oninput="calcSaleTotal();_updateSaleStockPreview()">
       </div>
       <div class="form-group">
         <label class="form-label">ราคา/กก. (฿)</label>
@@ -3287,11 +3287,57 @@
       const item  = invId ? invItems.find(i => i.id === invId) : null;
       if (item && item.harvestDate) {
         document.getElementById('sale-date-input').value = item.harvestDate;
-        // แสดง hint ให้รู้ว่ามาจากวันเข้าคลัง
         _showSaleDateHint('📅 วันเข้าคลัง: ' + new Date(item.harvestDate).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}));
       }
     } else {
       _showSaleDateHint('');
+    }
+
+    // ── stock preview ──
+    _updateSaleStockPreview();
+  }
+
+  function _updateSaleStockPreview() {
+    const raw     = document.getElementById('sale-product-select')?.value || '';
+    const invId   = _getInvIdFromSelectVal(raw);
+    const prodName = raw.startsWith('__inv__') ? raw.split('__')[3] : raw;
+    const weight  = parseFloat(document.getElementById('sale-weight')?.value) || 0;
+
+    let preview = document.getElementById('sale-stock-preview');
+    if (!preview) {
+      preview = document.createElement('div');
+      preview.id = 'sale-stock-preview';
+      preview.style.cssText = 'font-size:11px;margin-top:5px;padding:6px 10px;border-radius:8px;display:none;';
+      const weightInput = document.getElementById('sale-weight');
+      if (weightInput) weightInput.parentNode.appendChild(preview);
+    }
+
+    if (!prodName || !raw.startsWith('__inv__')) { preview.style.display = 'none'; return; }
+
+    // total available across all lots
+    const totalAvail = invItems
+      .filter(i => i.cat === 'ผลผลิต' && i.name === prodName && i.qty > 0)
+      .reduce((s, i) => s + i.qty, 0);
+
+    const isOverSell = weight > 0 && weight > totalAvail;
+    const afterSell  = Math.max(0, totalAvail - weight);
+
+    preview.style.display = '';
+    if (isOverSell) {
+      preview.style.background = '#fef2f2';
+      preview.style.color      = '#ef4444';
+      preview.style.border     = '1px solid #fecaca';
+      preview.innerHTML = `⚠️ <strong>สต็อกไม่พอ</strong> — มีในคลัง <strong>${totalAvail} กก.</strong> ขาดอีก <strong>${(weight - totalAvail).toFixed(1)} กก.</strong>`;
+    } else if (weight > 0) {
+      preview.style.background = '#f0fdf4';
+      preview.style.color      = '#15803d';
+      preview.style.border     = '1px solid #bbf7d0';
+      preview.innerHTML = `📦 มีในคลัง <strong>${totalAvail} กก.</strong> → หลังขาย เหลือ <strong>${afterSell.toFixed(1)} กก.</strong>`;
+    } else {
+      preview.style.background = '#f8fafc';
+      preview.style.color      = '#64748b';
+      preview.style.border     = '1px solid #e2e8f0';
+      preview.innerHTML = `📦 สต็อกปัจจุบัน: <strong>${totalAvail} กก.</strong>`;
     }
   }
 
@@ -4376,20 +4422,53 @@
   }
 
   // ── Helper: deduct produce stock when a sale is recorded ──
-  function deductProduceStock(productName, weightKg, invId) {
-    if (!productName || !weightKg) return;
-    // If invId provided → deduct from that specific lot
-    let item = invId ? invItems.find(i => i.id === invId) : null;
-    // Fallback: find by name (oldest lot = first found with qty > 0)
-    if (!item) item = invItems.find(i => i.cat === 'ผลผลิต' && i.name === productName && i.qty > 0);
-    if (!item) return;
-    const deduct = Math.min(item.qty, weightKg);
-    item.qty = Math.max(0, item.qty - deduct);
-    renderInv();
-    if (deduct > 0) {
-      const lotLabel = item.lot ? ' (' + item.lot + ')' : '';
-      showToast(`📦 หักสต็อก ${productName}${lotLabel}: −${deduct} กก. เหลือ ${item.qty} กก.`);
+  function deductProduceStock(productName, weightKg, invId, silent = false) {
+    if (!productName || !weightKg) return { deducted: 0, remaining: weightKg };
+
+    let remaining = weightKg;
+    const deducted = [];
+
+    // Primary: exact lot by invId
+    if (invId) {
+      const item = invItems.find(i => i.id === invId);
+      if (item && item.qty > 0) {
+        const take = Math.min(item.qty, remaining);
+        item.qty = Math.max(0, item.qty - take);
+        remaining -= take;
+        deducted.push({ name: item.name, lot: item.lot, took: take, left: item.qty });
+      }
     }
+
+    // Cascade: other lots with same name (oldest first by harvestDate)
+    if (remaining > 0) {
+      const otherLots = invItems
+        .filter(i => i.cat === 'ผลผลิต' && i.name === productName && i.qty > 0 && i.id !== invId)
+        .sort((a, b) => (a.harvestDate || '').localeCompare(b.harvestDate || ''));
+      for (const item of otherLots) {
+        if (remaining <= 0) break;
+        const take = Math.min(item.qty, remaining);
+        item.qty = Math.max(0, item.qty - take);
+        remaining -= take;
+        deducted.push({ name: item.name, lot: item.lot, took: take, left: item.qty });
+      }
+    }
+
+    const totalDeducted = weightKg - remaining;
+    if (totalDeducted > 0) {
+      renderInv();
+      saveData();
+      if (!silent) {
+        const lots = deducted.map(d => `${d.lot || d.name} −${d.took}กก. (เหลือ ${d.left})`).join(' · ');
+        showToast(`📦 หักสต็อก: ${lots}`, 'success');
+      }
+    }
+
+    // Oversell warning
+    if (remaining > 0 && !silent) {
+      showToast(`⚠️ สต็อก${productName}ไม่พอ — ขาดอีก ${remaining.toFixed(1)} กก. กรุณาเพิ่มผลผลิตเข้าคลัง`, 'warn');
+    }
+
+    return { deducted: totalDeducted, remaining };
   }
 
   function updateInvStats() {
@@ -5246,7 +5325,11 @@
     const oldInv = oldInvId
       ? invItems.find(i => i.id === oldInvId)
       : invItems.find(i => i.cat === 'ผลผลิต' && i.name === oldProduct);
-    if (oldInv) oldInv.qty = Math.max(0, oldInv.qty + oldWeight);
+    // Restore old weight silently, then deduct new amount
+    if (oldInv) {
+      oldInv.qty += oldWeight;
+      saveData();
+    }
 
     item.date=document.getElementById('se-date').value;
     const seProductVal = document.getElementById('se-product').value.trim();
@@ -5259,7 +5342,7 @@
     item.weight=w; item.price=p; item.total=total;
     item.payment=document.getElementById('se-payment').value;
 
-    // Deduct new weight from correct lot
+    // Deduct new weight (shows toast + saves)
     deductProduceStock(item.product, w, newInvId);
 
     closeModal('modal-sale-edit');
@@ -5275,11 +5358,16 @@
       const idx=salesData.findIndex(s=>s._id===id);
       if(idx>-1){
         const sold = salesData[idx];
-        // restore produce stock to exact lot
+        // Restore produce stock — find all lots with same product name, add back to primary lot
         const restoreInv = sold.invId
           ? invItems.find(i => i.id === sold.invId)
           : invItems.find(i => i.cat === 'ผลผลิต' && i.name === sold.product);
-        if (restoreInv) { restoreInv.qty = Math.max(0, restoreInv.qty + (sold.weight || 0)); renderInv(); }
+        if (restoreInv) {
+          restoreInv.qty += (sold.weight || 0);
+          renderInv();
+          saveData();
+          showToast(`↩️ คืนสต็อก ${sold.product} +${sold.weight} กก.`);
+        }
         salesData.splice(idx,1);
       }
       renderSales();renderDashboard();setTimeout(buildReportCharts,100);
