@@ -2115,28 +2115,63 @@
         <div class="card-header">
           <div>
             <div class="card-title">🤖 AI ที่ปรึกษาฟาร์ม</div>
-            <div class="card-subtitle">ต้องการ Anthropic API Key เพื่อใช้งาน</div>
+            <div class="card-subtitle">เลือก provider และใส่ API Key เพื่อใช้งาน</div>
           </div>
           <button class="btn btn-primary" style="background:#6366f1;" onclick="saveAiKey()">💾 บันทึก</button>
         </div>
-        <div class="form-group" style="margin-bottom:0;">
-          <label class="form-label">Anthropic API Key</label>
+
+        <!-- Provider selector -->
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">เลือก AI Provider</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:2px solid var(--gray-200);cursor:pointer;flex:1;min-width:140px;transition:all .15s;" id="provider-card-gemini">
+              <input type="radio" name="ai-provider" id="ai-provider-gemini" value="gemini" onchange="onProviderChange()" style="accent-color:#4285f4;">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#4285f4;">🆓 Google Gemini</div>
+                <div style="font-size:10px;color:var(--gray-400);">ฟรีถาวร · 1,500 req/วัน</div>
+              </div>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-radius:10px;border:2px solid var(--gray-200);cursor:pointer;flex:1;min-width:140px;transition:all .15s;" id="provider-card-anthropic">
+              <input type="radio" name="ai-provider" id="ai-provider-anthropic" value="anthropic" onchange="onProviderChange()" style="accent-color:#6366f1;">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:#6366f1;">⚡ Anthropic Claude</div>
+                <div style="font-size:10px;color:var(--gray-400);">$5 เครดิตฟรี · จ่ายต่อ token</div>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Gemini key (shown when gemini selected) -->
+        <div id="gemini-key-section" class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">
+            Google Gemini API Key
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:11px;color:#4285f4;margin-left:8px;font-weight:400;">🔗 รับฟรีที่ aistudio.google.com</a>
+          </label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="password" class="form-control" id="st-gemini-key"
+              placeholder="AIza..."
+              style="font-family:monospace;letter-spacing:1px;flex:1;">
+            <button class="btn btn-outline" style="flex-shrink:0;font-size:12px;"
+              onclick="document.getElementById('st-gemini-key').type=document.getElementById('st-gemini-key').type==='password'?'text':'password'">👁</button>
+          </div>
+        </div>
+
+        <!-- Anthropic key (shown when anthropic selected) -->
+        <div id="anthropic-key-section" class="form-group" style="margin-bottom:10px;display:none;">
+          <label class="form-label">
+            Anthropic API Key
+            <a href="https://console.anthropic.com/keys" target="_blank" style="font-size:11px;color:#6366f1;margin-left:8px;font-weight:400;">🔗 รับที่ console.anthropic.com</a>
+          </label>
           <div style="display:flex;gap:8px;align-items:center;">
             <input type="password" class="form-control" id="st-anthropic-key"
               placeholder="sk-ant-api03-..."
               style="font-family:monospace;letter-spacing:1px;flex:1;">
             <button class="btn btn-outline" style="flex-shrink:0;font-size:12px;"
-              onclick="document.getElementById('st-anthropic-key').type=document.getElementById('st-anthropic-key').type==='password'?'text':'password'">
-              👁
-            </button>
+              onclick="document.getElementById('st-anthropic-key').type=document.getElementById('st-anthropic-key').type==='password'?'text':'password'">👁</button>
           </div>
-          <div style="font-size:11px;color:var(--gray-400);margin-top:6px;">
-            รับ API Key ได้ที่
-            <a href="https://console.anthropic.com/keys" target="_blank" style="color:#6366f1;">console.anthropic.com/keys</a>
-            · Key จะถูกเก็บใน Firebase ของฟาร์มเท่านั้น
-          </div>
-          <div id="ai-key-status" style="margin-top:8px;font-size:12px;"></div>
         </div>
+
+        <div id="ai-key-status" style="font-size:12px;margin-top:4px;"></div>
       </div>
 
       <!-- ── รายชื่อผู้ปฏิบัติงาน ── -->
@@ -8493,7 +8528,9 @@ ${calendarHTML}
     plots:        ['A1','A2','A3','B1','B2','C1','C2','C3','C4','D1','D2','D3','E1','F1','F2','G1'],
     shelfLife:    7,
     alertPct:     20,
-    anthropicKey: ''   // Anthropic API Key สำหรับ AI ที่ปรึกษา
+    anthropicKey: '',   // Anthropic API Key สำหรับ AI ที่ปรึกษา
+    geminiKey:    '',   // Google Gemini API Key (ฟรี)
+    aiProvider:   'gemini'  // 'anthropic' | 'gemini'
   };
 
   function renderSettings() {
@@ -8506,15 +8543,22 @@ ${calendarHTML}
     document.getElementById('st-shelf-life').value = s.shelfLife || 7;
     document.getElementById('st-alert-pct').value  = s.alertPct  || 20;
     // ── AI key status ──
-    const keyEl = document.getElementById('st-anthropic-key');
+    const keyEl   = document.getElementById('st-anthropic-key');
+    const gKeyEl  = document.getElementById('st-gemini-key');
     const statusEl = document.getElementById('ai-key-status');
-    if (keyEl) keyEl.value = s.anthropicKey || '';
+    if (keyEl)  keyEl.value  = s.anthropicKey || '';
+    if (gKeyEl) gKeyEl.value = s.geminiKey    || '';
+    // Set provider radio
+    const prov = s.aiProvider || 'gemini';
+    const radio = document.getElementById('ai-provider-' + prov);
+    if (radio) radio.checked = true;
+    onProviderChange();
+    // Show status
+    const activeKey = prov === 'gemini' ? s.geminiKey : s.anthropicKey;
     if (statusEl) {
-      if (s.anthropicKey) {
-        statusEl.innerHTML = '✅ <span style="color:var(--green-700);font-weight:600;">ตั้งค่า API Key แล้ว</span> · กด 🤖 เพื่อเริ่มใช้งาน';
-      } else {
-        statusEl.innerHTML = '⚠️ <span style="color:#f59e0b;">ยังไม่มี API Key</span> — ปุ่ม AI จะใช้ไม่ได้จนกว่าจะบันทึก Key';
-      }
+      statusEl.innerHTML = activeKey
+        ? `✅ <span style="color:var(--green-700);font-weight:600;">${prov === 'gemini' ? '🆓 Gemini' : '⚡ Anthropic'} — พร้อมใช้งาน</span>`
+        : `⚠️ <span style="color:#f59e0b;">ยังไม่มี API Key — ใส่แล้วกดบันทึก</span>`;
     }
     // Render per-type shelf life inputs
     const CROP_TYPES = ['พืชผัก','พืชสวนครัว','ไม้ผล','ไม้ดอก','ไม้เศรษฐกิจ','พืชไร่','สมุนไพร','อื่นๆ'];
@@ -9395,86 +9439,136 @@ ${[...sales].sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<tr><td>${fmtDate
     sendAiMessage();
   }
 
+  function onProviderChange() {
+    const prov = document.querySelector('input[name="ai-provider"]:checked')?.value || 'gemini';
+    const gSec = document.getElementById('gemini-key-section');
+    const aSec = document.getElementById('anthropic-key-section');
+    const gCard = document.getElementById('provider-card-gemini');
+    const aCard = document.getElementById('provider-card-anthropic');
+    if (gSec) gSec.style.display = prov === 'gemini'    ? '' : 'none';
+    if (aSec) aSec.style.display = prov === 'anthropic' ? '' : 'none';
+    if (gCard) gCard.style.borderColor = prov === 'gemini'    ? '#4285f4' : 'var(--gray-200)';
+    if (aCard) aCard.style.borderColor = prov === 'anthropic' ? '#6366f1' : 'var(--gray-200)';
+  }
+
   function saveAiKey() {
-    const key = document.getElementById('st-anthropic-key')?.value.trim() || '';
-    farmSettings.anthropicKey = key;
+    const prov  = document.querySelector('input[name="ai-provider"]:checked')?.value || 'gemini';
+    const gKey  = document.getElementById('st-gemini-key')?.value.trim()    || '';
+    const aKey  = document.getElementById('st-anthropic-key')?.value.trim() || '';
+    farmSettings.aiProvider   = prov;
+    farmSettings.geminiKey    = gKey;
+    farmSettings.anthropicKey = aKey;
     saveData();
     renderSettings();
-    showToast(key ? '✅ บันทึก API Key แล้ว · AI พร้อมใช้งาน' : '🗑 ลบ API Key แล้ว');
+    const activeKey = prov === 'gemini' ? gKey : aKey;
+    showToast(activeKey
+      ? `✅ บันทึกแล้ว — ใช้ ${prov === 'gemini' ? '🆓 Google Gemini' : '⚡ Anthropic Claude'}`
+      : '⚠️ ยังไม่ได้ใส่ API Key');
   }
 
   async function sendAiMessage() {
     if (_aiLoading) return;
-    const apiKey = farmSettings.anthropicKey?.trim();
+    const provider = farmSettings.aiProvider || 'gemini';
+    const apiKey   = provider === 'gemini'
+      ? farmSettings.geminiKey?.trim()
+      : farmSettings.anthropicKey?.trim();
+
     if (!apiKey) {
-      _aiAddBubble('bot', '⚠️ **ยังไม่มี Anthropic API Key**\n\nกรุณาไปที่ **ตั้งค่า → AI ที่ปรึกษาฟาร์ม** แล้วใส่ API Key ของคุณก่อน\n\nรับ Key ได้ฟรีที่ [console.anthropic.com/keys](https://console.anthropic.com/keys)');
+      _aiAddBubble('bot',
+        '⚠️ **ยังไม่มี API Key**\n\nไปที่ **⚙️ ตั้งค่า → AI ที่ปรึกษาฟาร์ม** แล้วเลือก provider และใส่ Key\n\n🆓 **แนะนำ Google Gemini** — ฟรีถาวร ไม่ต้องบัตรเครดิต\nสมัครได้ที่ [aistudio.google.com](https://aistudio.google.com/app/apikey)');
       return;
     }
+
     const input = document.getElementById('ai-input');
     const text  = input.value.trim();
     if (!text) return;
-    input.value = '';
-    input.style.height = 'auto';
+    input.value = ''; input.style.height = 'auto';
 
     _aiAddBubble('user', text);
     _aiHistory.push({ role:'user', content: text });
     _aiLoading = true;
-
-    const sendBtn = document.getElementById('ai-send-btn');
-    if (sendBtn) sendBtn.disabled = true;
+    document.getElementById('ai-send-btn').disabled = true;
     const thinkId = _aiAddBubble('bot', '⏳ กำลังคิด...', 'thinking');
 
+    const systemPrompt = `คุณคือ AI ที่ปรึกษาเกษตรอินทรีย์สำหรับฟาร์ม "${farmSettings.name}" ในจังหวัดลำปาง ภาคเหนือของประเทศไทย
+
+บทบาท: ให้คำแนะนำด้านเกษตรอินทรีย์ โรคพืช ศัตรูพืช การใส่ปุ๋ย และการเก็บเกี่ยว วิเคราะห์ข้อมูลในระบบ ตอบเป็นภาษาไทย กระชับ ใช้ emoji บ้าง
+
+${_aiFarmContext()}`;
+
     try {
-      const systemPrompt = `คุณคือ AI ที่ปรึกษาเกษตรอินทรีย์สำหรับฟาร์ม "${farmSettings.name}" ในจังหวัดลำปาง ภาคเหนือของประเทศไทย
-
-บทบาทของคุณ:
-- ให้คำแนะนำด้านเกษตรอินทรีย์ โรคพืช ศัตรูพืช การใส่ปุ๋ย และการเก็บเกี่ยว
-- วิเคราะห์ข้อมูลในระบบและให้คำแนะนำเชิงปฏิบัติ
-- ตอบเป็นภาษาไทย กระชับ เข้าใจง่าย ใช้ emoji ประกอบบ้าง
-- ถ้าถามเกี่ยวกับข้อมูลฟาร์ม ให้ใช้ข้อมูลจาก Context ด้านล่าง
-
-${_aiFarmContext()}
-
-ตอบสั้นๆ ได้ใจความ ใช้ bullet point เมื่อเหมาะสม`;
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-opus-4-5',
-          max_tokens: 1000,
-          system: systemPrompt,
-          messages: _aiHistory.slice(-8)
-        })
-      });
-
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        const errMsg = errData.error?.message || `HTTP ${res.status}`;
-        if (res.status === 401) throw new Error('API Key ไม่ถูกต้อง กรุณาตรวจสอบใหม่ในหน้าตั้งค่า');
-        if (res.status === 429) throw new Error('ใช้งานเกิน quota กรุณารอสักครู่แล้วลองใหม่');
-        throw new Error(errMsg);
+      let reply;
+      if (provider === 'gemini') {
+        reply = await _sendGemini(apiKey, systemPrompt, _aiHistory.slice(-8));
+      } else {
+        reply = await _sendAnthropic(apiKey, systemPrompt, _aiHistory.slice(-8));
       }
-
-      const data  = await res.json();
-      const reply = data.content?.[0]?.text || 'ขอโทษครับ ไม่สามารถตอบได้ในขณะนี้';
       _aiRemoveBubble(thinkId);
       _aiAddBubble('bot', reply);
       _aiHistory.push({ role:'assistant', content: reply });
-
     } catch (err) {
       _aiRemoveBubble(thinkId);
-      _aiAddBubble('bot', `❌ **เกิดข้อผิดพลาด:** ${err.message}`);
+      _aiAddBubble('bot', `❌ **${err.message}**`);
     }
 
     _aiLoading = false;
-    if (sendBtn) sendBtn.disabled = false;
+    document.getElementById('ai-send-btn').disabled = false;
     document.getElementById('ai-input')?.focus();
+  }
+
+  async function _sendGemini(apiKey, systemPrompt, history) {
+    // Convert history to Gemini format
+    const contents = history.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents,
+          generationConfig: { maxOutputTokens: 1000, temperature: 0.7 }
+        })
+      }
+    );
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      if (res.status === 400) throw new Error('API Key ไม่ถูกต้อง กรุณาตรวจสอบในตั้งค่า');
+      if (res.status === 429) throw new Error('ใช้เกิน quota กรุณารอสักครู่');
+      throw new Error(e.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || 'ขอโทษครับ ไม่สามารถตอบได้';
+  }
+
+  async function _sendAnthropic(apiKey, systemPrompt, history) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: history
+      })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      if (res.status === 401) throw new Error('API Key ไม่ถูกต้อง กรุณาตรวจสอบในตั้งค่า');
+      if (res.status === 429) throw new Error('ใช้เกิน quota กรุณารอสักครู่');
+      throw new Error(e.error?.message || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    return data.content?.[0]?.text || 'ขอโทษครับ ไม่สามารถตอบได้';
   }
 
   let _aiMsgId = 0;
