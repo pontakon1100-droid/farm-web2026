@@ -2110,6 +2110,35 @@
         </div>
       </div>
 
+      <!-- ── AI ที่ปรึกษาฟาร์ม ── -->
+      <div class="card" style="margin-bottom:14px;border-left:3px solid #6366f1;">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🤖 AI ที่ปรึกษาฟาร์ม</div>
+            <div class="card-subtitle">ต้องการ Anthropic API Key เพื่อใช้งาน</div>
+          </div>
+          <button class="btn btn-primary" style="background:#6366f1;" onclick="saveAiKey()">💾 บันทึก</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Anthropic API Key</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="password" class="form-control" id="st-anthropic-key"
+              placeholder="sk-ant-api03-..."
+              style="font-family:monospace;letter-spacing:1px;flex:1;">
+            <button class="btn btn-outline" style="flex-shrink:0;font-size:12px;"
+              onclick="document.getElementById('st-anthropic-key').type=document.getElementById('st-anthropic-key').type==='password'?'text':'password'">
+              👁
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:6px;">
+            รับ API Key ได้ที่
+            <a href="https://console.anthropic.com/keys" target="_blank" style="color:#6366f1;">console.anthropic.com/keys</a>
+            · Key จะถูกเก็บใน Firebase ของฟาร์มเท่านั้น
+          </div>
+          <div id="ai-key-status" style="margin-top:8px;font-size:12px;"></div>
+        </div>
+      </div>
+
       <!-- ── รายชื่อผู้ปฏิบัติงาน ── -->
       <div class="card" style="margin-bottom:14px">
         <div class="card-header">
@@ -8455,15 +8484,16 @@ ${calendarHTML}
   // ===== SETTINGS =====
   // ============================================================
   let farmSettings = {
-    name:      'โต้งลำปางหลวง',
-    location:  'ลำปาง',
-    area:      8,
-    owner:     '',
-    desc:      '',
-    workers:   ['สมชาย','มาลี','สมใจ'],
-    plots:     ['A1','A2','A3','B1','B2','C1','C2','C3','C4','D1','D2','D3','E1','F1','F2','G1'],
-    shelfLife: 7,
-    alertPct:  20
+    name:         'โต้งลำปางหลวง',
+    location:     'ลำปาง',
+    area:         8,
+    owner:        '',
+    desc:         '',
+    workers:      ['สมชาย','มาลี','สมใจ'],
+    plots:        ['A1','A2','A3','B1','B2','C1','C2','C3','C4','D1','D2','D3','E1','F1','F2','G1'],
+    shelfLife:    7,
+    alertPct:     20,
+    anthropicKey: ''   // Anthropic API Key สำหรับ AI ที่ปรึกษา
   };
 
   function renderSettings() {
@@ -8475,6 +8505,17 @@ ${calendarHTML}
     document.getElementById('st-farm-desc').value  = s.desc  || '';
     document.getElementById('st-shelf-life').value = s.shelfLife || 7;
     document.getElementById('st-alert-pct').value  = s.alertPct  || 20;
+    // ── AI key status ──
+    const keyEl = document.getElementById('st-anthropic-key');
+    const statusEl = document.getElementById('ai-key-status');
+    if (keyEl) keyEl.value = s.anthropicKey || '';
+    if (statusEl) {
+      if (s.anthropicKey) {
+        statusEl.innerHTML = '✅ <span style="color:var(--green-700);font-weight:600;">ตั้งค่า API Key แล้ว</span> · กด 🤖 เพื่อเริ่มใช้งาน';
+      } else {
+        statusEl.innerHTML = '⚠️ <span style="color:#f59e0b;">ยังไม่มี API Key</span> — ปุ่ม AI จะใช้ไม่ได้จนกว่าจะบันทึก Key';
+      }
+    }
     // Render per-type shelf life inputs
     const CROP_TYPES = ['พืชผัก','พืชสวนครัว','ไม้ผล','ไม้ดอก','ไม้เศรษฐกิจ','พืชไร่','สมุนไพร','อื่นๆ'];
     const sbtEl = document.getElementById('shelf-by-type-list');
@@ -9354,8 +9395,21 @@ ${[...sales].sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<tr><td>${fmtDate
     sendAiMessage();
   }
 
+  function saveAiKey() {
+    const key = document.getElementById('st-anthropic-key')?.value.trim() || '';
+    farmSettings.anthropicKey = key;
+    saveData();
+    renderSettings();
+    showToast(key ? '✅ บันทึก API Key แล้ว · AI พร้อมใช้งาน' : '🗑 ลบ API Key แล้ว');
+  }
+
   async function sendAiMessage() {
     if (_aiLoading) return;
+    const apiKey = farmSettings.anthropicKey?.trim();
+    if (!apiKey) {
+      _aiAddBubble('bot', '⚠️ **ยังไม่มี Anthropic API Key**\n\nกรุณาไปที่ **ตั้งค่า → AI ที่ปรึกษาฟาร์ม** แล้วใส่ API Key ของคุณก่อน\n\nรับ Key ได้ฟรีที่ [console.anthropic.com/keys](https://console.anthropic.com/keys)');
+      return;
+    }
     const input = document.getElementById('ai-input');
     const text  = input.value.trim();
     if (!text) return;
@@ -9368,7 +9422,6 @@ ${[...sales].sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<tr><td>${fmtDate
 
     const sendBtn = document.getElementById('ai-send-btn');
     if (sendBtn) sendBtn.disabled = true;
-
     const thinkId = _aiAddBubble('bot', '⏳ กำลังคิด...', 'thinking');
 
     try {
@@ -9384,37 +9437,44 @@ ${_aiFarmContext()}
 
 ตอบสั้นๆ ได้ใจความ ใช้ bullet point เมื่อเหมาะสม`;
 
-      const messages = [
-        ..._aiHistory.slice(-8), // keep last 8 turns
-      ];
-
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-opus-4-5',
           max_tokens: 1000,
           system: systemPrompt,
-          messages
+          messages: _aiHistory.slice(-8)
         })
       });
 
-      const data = await res.json();
-      const reply = data.content?.[0]?.text || 'ขอโทษครับ ไม่สามารถตอบได้ในขณะนี้';
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        const errMsg = errData.error?.message || `HTTP ${res.status}`;
+        if (res.status === 401) throw new Error('API Key ไม่ถูกต้อง กรุณาตรวจสอบใหม่ในหน้าตั้งค่า');
+        if (res.status === 429) throw new Error('ใช้งานเกิน quota กรุณารอสักครู่แล้วลองใหม่');
+        throw new Error(errMsg);
+      }
 
+      const data  = await res.json();
+      const reply = data.content?.[0]?.text || 'ขอโทษครับ ไม่สามารถตอบได้ในขณะนี้';
       _aiRemoveBubble(thinkId);
       _aiAddBubble('bot', reply);
       _aiHistory.push({ role:'assistant', content: reply });
 
     } catch (err) {
       _aiRemoveBubble(thinkId);
-      _aiAddBubble('bot', '❌ เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+      _aiAddBubble('bot', `❌ **เกิดข้อผิดพลาด:** ${err.message}`);
     }
 
     _aiLoading = false;
     if (sendBtn) sendBtn.disabled = false;
-    const inp = document.getElementById('ai-input');
-    if (inp) inp.focus();
+    document.getElementById('ai-input')?.focus();
   }
 
   let _aiMsgId = 0;
