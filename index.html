@@ -9599,8 +9599,8 @@ ${_aiFarmContext()}`;
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': window.location.href,
-        'X-Title': farmSettings.name + ' Farm AI'
+        'HTTP-Referer': 'https://farm-management-app.local',
+        'X-Title': 'Farm Management AI'
       },
       body: JSON.stringify({
         model: 'deepseek/deepseek-r1-0528:free',
