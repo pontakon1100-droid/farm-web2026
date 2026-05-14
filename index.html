@@ -9522,8 +9522,8 @@ ${_aiFarmContext()}`;
       parts: [{ text: m.content }]
     }));
 
-    // ลอง gemini-2.0-flash ก่อน → fallback gemini-1.5-flash
-    const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+    // เรียงตาม free quota: gemini-1.5-flash > gemini-2.0-flash-lite > gemini-2.0-flash
+    const models = ['gemini-1.5-flash', 'gemini-2.0-flash-lite', 'gemini-2.0-flash'];
     let lastErr = '';
 
     for (const model of models) {
