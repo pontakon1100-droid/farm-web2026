@@ -9594,29 +9594,37 @@ ${_aiFarmContext()}`;
       { role: 'system', content: systemPrompt },
       ...history
     ];
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://farm-management-app.local',
-        'X-Title': 'Farm Management AI'
-      },
-      body: JSON.stringify({
-        model: 'deepseek/deepseek-r1-0528:free',
-        messages,
-        max_tokens: 1000,
-        temperature: 0.7
-      })
-    });
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
+    // ลองตามลำดับถ้า model ไม่พร้อม
+    const models = [
+      'deepseek/deepseek-r1:free',
+      'meta-llama/llama-4-scout:free',
+      'google/gemini-2.0-flash-exp:free',
+      'mistralai/mistral-7b-instruct:free'
+    ];
+    let lastErr = '';
+    for (const model of models) {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': 'https://farm-management-app.local',
+          'X-Title': 'Farm Management AI'
+        },
+        body: JSON.stringify({ model, messages, max_tokens: 1000, temperature: 0.7 })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.choices?.[0]?.message?.content || 'ขอโทษครับ ไม่สามารถตอบได้';
+      }
+      const e   = await res.json().catch(() => ({}));
+      const msg = e.error?.message || `HTTP ${res.status}`;
+      lastErr   = msg;
       if (res.status === 401) throw new Error('API Key ไม่ถูกต้อง — ตรวจสอบใน openrouter.ai/keys');
       if (res.status === 429) throw new Error('ใช้เกิน quota วันนี้ (50 req/วัน) — ลองใหม่พรุ่งนี้');
-      throw new Error(e.error?.message || `HTTP ${res.status}`);
+      // 404/no endpoints → ลอง model ถัดไป
     }
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || 'ขอโทษครับ ไม่สามารถตอบได้';
+    throw new Error(`ไม่สามารถเชื่อมต่อ OpenRouter ได้: ${lastErr}`);
   }
 
   async function _sendAnthropic(apiKey, systemPrompt, history) {
