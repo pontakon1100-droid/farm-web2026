@@ -2165,6 +2165,19 @@
             ใช้โมเดล DeepSeek R1 / Llama 4 (ฟรี 50 req/วัน) · ใช้ได้ในไทย ✅
           </div>
         </div>
+        <!-- Custom model override -->
+        <div id="openrouter-model-section" class="form-group" style="margin-bottom:10px;display:none;">
+          <label class="form-label" style="display:flex;justify-content:space-between;">
+            <span>กำหนด Model เอง (ไม่บังคับ)</span>
+            <a href="https://openrouter.ai/models?q=free" target="_blank" style="font-size:11px;color:#10b981;">ดู model ฟรีทั้งหมด →</a>
+          </label>
+          <input type="text" class="form-control" id="st-openrouter-model"
+            placeholder="เช่น deepseek/deepseek-r1:free (ว่าง = ลองอัตโนมัติ)"
+            style="font-family:monospace;font-size:12px;">
+          <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">
+            ถ้าปล่อยว่าง ระบบจะลอง model ฟรีหลายตัวให้อัตโนมัติ
+          </div>
+        </div>
 
         <!-- Gemini key (shown when gemini selected) -->
         <div id="gemini-key-section" class="form-group" style="margin-bottom:10px;">
@@ -8556,6 +8569,7 @@ ${calendarHTML}
     anthropicKey: '',   // Anthropic API Key
     geminiKey:    '',   // Google Gemini API Key
     openrouterKey:'',   // OpenRouter API Key (ฟรี ใช้ได้ในไทย)
+    openrouterModel:'', // กำหนด model เอง (ถ้าว่างจะใช้ลิสต์ฟรี)
     aiProvider:   'openrouter'  // 'openrouter' | 'anthropic' | 'gemini'
   };
 
@@ -8575,7 +8589,9 @@ ${calendarHTML}
     const statusEl = document.getElementById('ai-key-status');
     if (keyEl)   keyEl.value   = s.anthropicKey  || '';
     if (gKeyEl)  gKeyEl.value  = s.geminiKey     || '';
-    if (orKeyEl) orKeyEl.value = s.openrouterKey || '';
+    if (orKeyEl)   orKeyEl.value   = s.openrouterKey  || '';
+    const orModelEl = document.getElementById('st-openrouter-model');
+    if (orModelEl) orModelEl.value = s.openrouterModel || '';
     const prov = s.aiProvider || 'openrouter';
     const radio = document.getElementById('ai-provider-' + prov);
     if (radio) radio.checked = true;
@@ -9477,14 +9493,18 @@ ${[...sales].sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<tr><td>${fmtDate
       if (sec)  sec.style.display  = p === prov ? '' : 'none';
       if (card) card.style.borderColor = p === prov ? colors[p] : 'var(--gray-200)';
     });
+    // custom model field — เฉพาะ OpenRouter
+    const modelSec = document.getElementById('openrouter-model-section');
+    if (modelSec) modelSec.style.display = prov === 'openrouter' ? '' : 'none';
   }
 
   function saveAiKey() {
     const prov  = document.querySelector('input[name="ai-provider"]:checked')?.value || 'openrouter';
     farmSettings.aiProvider    = prov;
-    farmSettings.openrouterKey = document.getElementById('st-openrouter-key')?.value.trim() || '';
-    farmSettings.geminiKey     = document.getElementById('st-gemini-key')?.value.trim()     || '';
-    farmSettings.anthropicKey  = document.getElementById('st-anthropic-key')?.value.trim()  || '';
+    farmSettings.openrouterKey   = document.getElementById('st-openrouter-key')?.value.trim()    || '';
+    farmSettings.openrouterModel = document.getElementById('st-openrouter-model')?.value.trim()  || '';
+    farmSettings.geminiKey       = document.getElementById('st-gemini-key')?.value.trim()        || '';
+    farmSettings.anthropicKey    = document.getElementById('st-anthropic-key')?.value.trim()     || '';
     saveData();
     renderSettings();
     const activeKey = { openrouter: farmSettings.openrouterKey, gemini: farmSettings.geminiKey, anthropic: farmSettings.anthropicKey }[prov];
@@ -9594,37 +9614,47 @@ ${_aiFarmContext()}`;
       { role: 'system', content: systemPrompt },
       ...history
     ];
-    // ลองตามลำดับถ้า model ไม่พร้อม
-    const models = [
+    // ดึง model จาก settings ถ้ามี หรือใช้ list ฟรี
+    const customModel = farmSettings.openrouterModel?.trim();
+    const models = customModel ? [customModel] : [
       'deepseek/deepseek-r1:free',
-      'meta-llama/llama-4-scout:free',
-      'google/gemini-2.0-flash-exp:free',
-      'mistralai/mistral-7b-instruct:free'
+      'deepseek/deepseek-v3:free',
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'qwen/qwen3-235b-a22b:free',
+      'google/gemini-2.5-flash-preview:free',
+      'mistralai/mistral-small-3.1-24b-instruct:free',
+      'nousresearch/deephermes-3-llama-3-8b-preview:free'
     ];
     let lastErr = '';
     for (const model of models) {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://farm-management-app.local',
-          'X-Title': 'Farm Management AI'
-        },
-        body: JSON.stringify({ model, messages, max_tokens: 1000, temperature: 0.7 })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.choices?.[0]?.message?.content || 'ขอโทษครับ ไม่สามารถตอบได้';
+      try {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'HTTP-Referer': 'https://farm-management-app.local',
+            'X-Title': 'Farm Management AI'
+          },
+          body: JSON.stringify({ model, messages, max_tokens: 1000, temperature: 0.7 })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.choices?.[0]?.message?.content;
+          if (text) return text;
+        }
+        const e = await res.json().catch(() => ({}));
+        const msg = e.error?.message || `HTTP ${res.status}`;
+        if (res.status === 401) throw new Error('API Key ไม่ถูกต้อง — ตรวจสอบ key ที่ openrouter.ai/keys');
+        if (res.status === 402) throw new Error('เครดิตหมด — เติมเงินขั้นต่ำ $1 ที่ openrouter.ai/credits');
+        if (res.status === 429) throw new Error('ใช้เกิน rate limit — รอสักครู่แล้วลองใหม่');
+        lastErr = `[${model.split('/')[1]}] ${msg}`;
+      } catch(e) {
+        if (e.message.includes('Key') || e.message.includes('เครดิต') || e.message.includes('rate')) throw e;
+        lastErr = e.message;
       }
-      const e   = await res.json().catch(() => ({}));
-      const msg = e.error?.message || `HTTP ${res.status}`;
-      lastErr   = msg;
-      if (res.status === 401) throw new Error('API Key ไม่ถูกต้อง — ตรวจสอบใน openrouter.ai/keys');
-      if (res.status === 429) throw new Error('ใช้เกิน quota วันนี้ (50 req/วัน) — ลองใหม่พรุ่งนี้');
-      // 404/no endpoints → ลอง model ถัดไป
     }
-    throw new Error(`ไม่สามารถเชื่อมต่อ OpenRouter ได้: ${lastErr}`);
+    throw new Error(`ไม่มี free model พร้อมใช้งานตอนนี้\n\nวิธีแก้:\n① ดู model ที่ใช้ได้ที่ openrouter.ai/models?q=free\n② ก็อปชื่อ model แล้วใส่ในช่อง "กำหนด model เอง" ในตั้งค่า\n③ หรือเติมเครดิต $1 เพื่อใช้ได้ทุก model`);
   }
 
   async function _sendAnthropic(apiKey, systemPrompt, history) {
